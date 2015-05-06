@@ -5,3 +5,5 @@ tld_msgs/msg_gen/
 tld_msgs/src/tld_msgs
 tld_tracker/bin/
 tld_tracker/lib/
+tld_tracker/build/
+*.swp
