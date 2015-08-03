@@ -1,6 +1,6 @@
 <launch>
 	<!-- declare arg to be passed in -->
-	<arg name="image_topic" default="im_acq"/>
+	<arg name="image_topic" default="/kinect2/qhd/image_color_rect"/>
 
     <!-- Nodes -->
     <node name="ros_tld_gui_node" pkg="tld_tracker" type="tld_gui_node"
@@ -8,6 +8,11 @@
         <remap from="image" to="$(arg image_topic)"/>
         <remap from="tracked_object" to="tld_tracked_object"/>
         <remap from="fps_tracker" to="tld_fps"/>
-    </node>
+      </node>
+
+      <!--include file="$(find tld_tracker)/launch/ros_tld_tracker.launch">
+        <param name="image_topic" value="$(arg image_topic)" />
+    </include-->
+
 </launch>
 

@@ -29,83 +29,83 @@
 
 BaseFrameGraphicsView::BaseFrameGraphicsView(QWidget * parent) : QGraphicsView(parent)
 {
-	m_scene = new QGraphicsScene(this);
-	this->setScene(m_scene);
+  m_scene = new QGraphicsScene(this);
+  this->setScene(m_scene);
 
-	m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
-	m_item_rect = new QGraphicsRectItem();
-	m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
+  m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
+  m_item_rect = new QGraphicsRectItem();
+  m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
 
-	m_pen = new QPen();
-	m_brush = new QBrush(Qt::SolidPattern);
+  m_pen = new QPen();
+  m_brush = new QBrush(Qt::SolidPattern);
 
-	m_pen->setColor(QColor(0,0,255));
-	m_brush->setColor(QColor(255,255,255,64));
-	m_item_rect->setPen(*m_pen);
-	m_item_rect->setBrush(*m_brush);
+  m_pen->setColor(QColor(0,0,255));
+  m_brush->setColor(QColor(255,255,255,64));
+  m_item_rect->setPen(*m_pen);
+  m_item_rect->setBrush(*m_brush);
 
-	m_scene->addItem(m_item_rect);
+  m_scene->addItem(m_item_rect);
 
-	this->setCursor(Qt::CrossCursor);
+  this->setCursor(Qt::CrossCursor);
 
-	correct_bb = false;
-	drag = false;
+  correct_bb = false;
+  drag = false;
 }
 
 BaseFrameGraphicsView::BaseFrameGraphicsView(QGraphicsScene * scene, QWidget * parent) : QGraphicsView(scene,parent)
 {
-	m_scene = scene;
-	this->setScene(m_scene);
+  m_scene = scene;
+  this->setScene(m_scene);
 
-	m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
-	m_item_rect = new QGraphicsRectItem(0,0,0,0);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
+  m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
+  m_item_rect = new QGraphicsRectItem(0,0,0,0);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
 
-	m_pen = new QPen();
-	m_brush = new QBrush(Qt::SolidPattern);
+  m_pen = new QPen();
+  m_brush = new QBrush(Qt::SolidPattern);
 
-	m_pen->setColor(QColor(0,0,255));
-	m_brush->setColor(QColor(255,255,255,64));
-	m_item_rect->setPen(*m_pen);
-	m_item_rect->setBrush(*m_brush);
+  m_pen->setColor(QColor(0,0,255));
+  m_brush->setColor(QColor(255,255,255,64));
+  m_item_rect->setPen(*m_pen);
+  m_item_rect->setBrush(*m_brush);
 
-	m_scene->addItem(m_item_rect);
+  m_scene->addItem(m_item_rect);
 
-	correct_bb = false;
-	drag = false;
+  correct_bb = false;
+  drag = false;
 }
 
-BaseFrameGraphicsView::~BaseFrameGraphicsView() 
+BaseFrameGraphicsView::~BaseFrameGraphicsView()
 {
-	delete m_pen;
-	delete m_brush;
+  delete m_pen;
+  delete m_brush;
 }
 
 QGraphicsRectItem * BaseFrameGraphicsView::get_bb() const
 {
-	return m_item_rect;
+  return m_item_rect;
 }
 
 bool BaseFrameGraphicsView::get_correct_bb()
 {
-	return correct_bb;
+  return correct_bb;
 }
 
 QPen * BaseFrameGraphicsView::get_pen() const
 {
-	return m_pen;
+  return m_pen;
 }
 
 QBrush * BaseFrameGraphicsView::get_brush() const
 {
-	return m_brush;
+  return m_brush;
 }
 
 void BaseFrameGraphicsView::image_received(const QImage & img)
 {
-	m_item_pixmap->setPixmap(QPixmap::fromImage(img));
+  m_item_pixmap->setPixmap(QPixmap::fromImage(img));
 }
 
 void BaseFrameGraphicsView::tracked_objet_changed(const QRectF & rect)
@@ -117,7 +117,7 @@ void BaseFrameGraphicsView::tracked_objet_changed(const QRectF & rect)
     {
       this->correct_bb = true;
       this->setCursor(Qt::ArrowCursor);
-    } 
+    }
   }
   //The tracker node sent a bad bouding box
   else
@@ -125,11 +125,11 @@ void BaseFrameGraphicsView::tracked_objet_changed(const QRectF & rect)
     if(this->correct_bb)
     {
       this->correct_bb = false;
-      this->setCursor(Qt::CrossCursor);  
+      this->setCursor(Qt::CrossCursor);
     }
   }
 
-  this->m_item_rect->setRect(rect);        
+  this->m_item_rect->setRect(rect);
 }
 
 void BaseFrameGraphicsView::resizeEvent(QResizeEvent * event)

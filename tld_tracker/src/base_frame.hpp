@@ -44,44 +44,44 @@
 
 class BaseFrame : public QWidget, private Ui::BaseFrame
 {
-	Q_OBJECT
+  Q_OBJECT
 
-	public:
-		ros::NodeHandle n;
-		ros::Publisher pub1;
-		ros::Publisher pub2;
-		ros::Subscriber sub1;
-		ros::Subscriber sub2;
-		ros::Subscriber sub3;
+  public:
+    ros::NodeHandle n;
+    ros::Publisher pub1;
+    ros::Publisher pub2;
+    ros::Subscriber sub1;
+    ros::Subscriber sub2;
+    ros::Subscriber sub3;
 
-		BaseFrame();
-		virtual ~BaseFrame();
+    BaseFrame();
+    virtual ~BaseFrame();
 
-	protected:
-		void keyPressEvent(QKeyEvent * event);
+  protected:
+    void keyPressEvent(QKeyEvent * event);
 
-	private:
-		cv_bridge::CvImageConstPtr cv_ptr;
-		bool first_image;
+  private:
+    cv_bridge::CvImageConstPtr cv_ptr;
+    bool first_image;
 
-		void image_receivedCB(const sensor_msgs::ImageConstPtr & msg);
-		void tracked_objectCB(const tld_msgs::BoundingBoxConstPtr & msg);
-		void fps_trackerCB(const std_msgs::Float32ConstPtr & msg);
+    void image_receivedCB(const sensor_msgs::ImageConstPtr & msg);
+    void tracked_objectCB(const tld_msgs::BoundingBoxConstPtr & msg);
+    void fps_trackerCB(const std_msgs::Float32ConstPtr & msg);
 
-	signals:
-		void sig_image_received(const QImage & image);
-		void sig_tracked_object_changed(const QRectF & bb);
-		void sig_fps_tracker_changed(int fps);
-		void sig_confidence_changed(int confidence);
+signals:
+    void sig_image_received(const QImage & image);
+    void sig_tracked_object_changed(const QRectF & bb);
+    void sig_fps_tracker_changed(int fps);
+    void sig_confidence_changed(int confidence);
 
-		public slots:
-		void clear_background();
-		void clear_and_stop_tracking();
-		void toggle_learning();
-		void alternating_mode();
-		void export_model();
-		void import_model();
-		void reset();
+    public slots:
+      void clear_background();
+    void clear_and_stop_tracking();
+    void toggle_learning();
+    void alternating_mode();
+    void export_model();
+    void import_model();
+    void reset();
 };
 
 #endif
