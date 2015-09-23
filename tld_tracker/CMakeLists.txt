@@ -5,10 +5,10 @@ project(tld_tracker)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   cv_bridge
-  std_msgs
+  roscpp
   sensor_msgs
+  std_msgs
   tld_msgs
 )
 
@@ -19,22 +19,48 @@ find_package(Qt4 REQUIRED COMPONENTS
   QtGui
 )
 
+########################
+## Set Build Warnings ##
+########################
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfatal-errors")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wfatal-errors")
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-variable")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-unused-variable")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
+
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wall")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Wextra")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -Wall")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -Wextra")
+
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ")
+#set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_DEBUG} ")
+
+# 'add_definitions' serviva originariamente per passare costanti
+# del preprocessore (-D), ora viene usato anche per passare flags al compilatore
+# add_definitions(-Wall -O3 -DNDEBUG -pipe -ffast-math -funroll-loops
+# -ftree-vectorize -fomit-frame-pointer -pipe -mfpmath=sse -mmmx -msse
+# -mtune=core2 -march=core2 -msse2 -msse3 -mssse3 -msse4)
+
 set(OPENTLD_OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../)
 
 include(ExternalProject)
 
-externalproject_add(opentld
-  PREFIX libopentld
-  SVN_REPOSITORY  https://github.com/Ronan0912/OpenTLD/trunk/
-  SVN_REVISION    -rHEAD
-  PATCH_COMMAND   patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff1.patch
-                  &&
-                  patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff2.patch
-  BUILD_IN_SOURCE 1
-  BUILD_COMMAND   cmake --build .
-  INSTALL_COMMAND ${PROJECT_SOURCE_DIR}/opentld/install.sh
-                  ${OPENTLD_OUTPUT_DIR}
-)
+#externalproject_add(opentld
+  #PREFIX libopentld
+  #SVN_REPOSITORY  https://github.com/Ronan0912/OpenTLD/trunk/
+  #SVN_REVISION    -rHEAD
+  #PATCH_COMMAND   patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff1.patch
+                  #&&
+                  #patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff2.patch
+  #BUILD_IN_SOURCE 1
+  #BUILD_COMMAND   cmake --build .
+  #INSTALL_COMMAND ${PROJECT_SOURCE_DIR}/opentld/install.sh
+                  #${OPENTLD_OUTPUT_DIR}
+#)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -113,7 +139,7 @@ catkin_package(
 ###########
 
 #Qt4 specific for the GUI
-set(TLD_QT_HEADERS  src/base_frame.hpp 
+set(TLD_QT_HEADERS  src/base_frame.hpp
                     src/ui_baseFrame.h
                     src/base_frame_graphics_view.hpp)
 
@@ -138,11 +164,11 @@ link_directories(${OPENTLD_OUTPUT_DIR}/lib/libopentld/)
 
 ## Declare a cpp executable
 add_executable(tld_tracker_node	src/tld_tracker_node.cpp
-                                src/main.cpp                              
+                                src/main.cpp
 )
 
 add_executable(tld_gui_node     src/tld_gui_node.cpp
-                                src/base_frame.cpp 
+                                src/base_frame.cpp
                                 src/base_frame_graphics_view.cpp
                                 ${TLD_QT_HEADERS_MOC}
 )
