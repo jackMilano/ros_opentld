@@ -88,6 +88,15 @@ class Main
                     "bounding_box", 1000, &Main::targetReceivedCB, this);
 			sub3 = n.subscribe(
                     "cmds", 1000, &Main::cmdReceivedCB, this);
+                    
+        	    if(tld->detectorCascade->foregroundDetector->bgImg.empty())
+		    {
+		    	ROS_INFO("Il background NON è settato!");
+		    }
+		    else
+		    {
+			ROS_INFO("Il background È settato!");
+		    }
 
 			semaphore.lock();
 		}
