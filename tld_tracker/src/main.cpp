@@ -351,8 +351,8 @@ void Main::cmdReceivedCB(const std_msgs::CharConstPtr& cmd)
     break;
 
   case 'z':
+    ROS_INFO("Comando ricevuto: 'z'!");
     // reinit();
-    // ROS_INFO("Comando ricevuto: 'z'!");
     // state = TRACKING_FALSE_POSITIVE;
     // reInit = false;
     // newBB = false;
@@ -469,6 +469,8 @@ void Main::importModel()
 
 void Main::reset()
 {
+  ROS_INFO("Sto effettuando il reset.");
+
   correctBB = false;
   state = INIT;
 

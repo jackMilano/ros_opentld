@@ -5,10 +5,10 @@ project(tld_tracker)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   cv_bridge
-  std_msgs
+  roscpp
   sensor_msgs
+  std_msgs
   tld_msgs
 )
 
@@ -23,18 +23,18 @@ set(OPENTLD_OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../)
 
 include(ExternalProject)
 
-externalproject_add(opentld
-  PREFIX libopentld
-  SVN_REPOSITORY  https://github.com/Ronan0912/OpenTLD/trunk/
-  SVN_REVISION    -rHEAD
-  PATCH_COMMAND   patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff1.patch
-                  &&
-                  patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff2.patch
-  BUILD_IN_SOURCE 1
-  BUILD_COMMAND   cmake --build .
-  INSTALL_COMMAND ${PROJECT_SOURCE_DIR}/opentld/install.sh
-                  ${OPENTLD_OUTPUT_DIR}
-)
+#externalproject_add(opentld
+  #PREFIX libopentld
+  #SVN_REPOSITORY  https://github.com/Ronan0912/OpenTLD/trunk/
+  #SVN_REVISION    -rHEAD
+  #PATCH_COMMAND   patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff1.patch
+                  #&&
+                  #patch -p0 -i ${PROJECT_SOURCE_DIR}/opentld/patches/diff2.patch
+  #BUILD_IN_SOURCE 1
+  #BUILD_COMMAND   cmake --build .
+  #INSTALL_COMMAND ${PROJECT_SOURCE_DIR}/opentld/install.sh
+                  #${OPENTLD_OUTPUT_DIR}
+#)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -113,7 +113,7 @@ catkin_package(
 ###########
 
 #Qt4 specific for the GUI
-set(TLD_QT_HEADERS  src/base_frame.hpp 
+set(TLD_QT_HEADERS  src/base_frame.hpp
                     src/ui_baseFrame.h
                     src/base_frame_graphics_view.hpp)
 
@@ -138,11 +138,11 @@ link_directories(${OPENTLD_OUTPUT_DIR}/lib/libopentld/)
 
 ## Declare a cpp executable
 add_executable(tld_tracker_node	src/tld_tracker_node.cpp
-                                src/main.cpp                              
+                                src/main.cpp
 )
 
 add_executable(tld_gui_node     src/tld_gui_node.cpp
-                                src/base_frame.cpp 
+                                src/base_frame.cpp
                                 src/base_frame_graphics_view.cpp
                                 ${TLD_QT_HEADERS_MOC}
 )
