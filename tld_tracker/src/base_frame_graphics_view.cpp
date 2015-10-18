@@ -27,138 +27,184 @@
 
 #include "base_frame_graphics_view.hpp"
 
-BaseFrameGraphicsView::BaseFrameGraphicsView(QWidget * parent) : QGraphicsView(parent)
+BaseFrameGraphicsView::BaseFrameGraphicsView(QWidget* parent) : QGraphicsView(parent)
 {
-	m_scene = new QGraphicsScene(this);
-	this->setScene(m_scene);
+  m_scene = new QGraphicsScene(this);
+  this->setScene(m_scene);
 
-	m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
-	m_item_rect = new QGraphicsRectItem();
-	m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
+  m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
+  m_item_rect = new QGraphicsRectItem();
+  m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
 
-	m_pen = new QPen();
-	m_brush = new QBrush(Qt::SolidPattern);
+  m_item_rect_odom = new QGraphicsRectItem();
+  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
 
-	m_pen->setColor(QColor(0,0,255));
-	m_brush->setColor(QColor(255,255,255,64));
-	m_item_rect->setPen(*m_pen);
-	m_item_rect->setBrush(*m_brush);
+  m_pen = new QPen();
+  m_brush = new QBrush(Qt::SolidPattern);
 
-	m_scene->addItem(m_item_rect);
+  m_pen->setColor(QColor(0, 0, 255));
+  m_brush->setColor(QColor(255, 255, 255, 64));
+  m_item_rect->setPen(*m_pen);
+  m_item_rect->setBrush(*m_brush);
 
-	this->setCursor(Qt::CrossCursor);
+  m_scene->addItem(m_item_rect);
 
-	correct_bb = false;
-	drag = false;
+  m_pen_odom = new QPen();
+  m_brush_odom = new QBrush(Qt::SolidPattern);
+
+  m_pen_odom->setColor(QColor(255, 0, 0));
+  m_brush_odom->setColor(QColor(255, 255, 255, 64));
+  m_item_rect_odom->setPen(*m_pen_odom);
+  m_item_rect_odom->setBrush(*m_brush_odom);
+
+  m_scene->addItem(m_item_rect_odom);
+
+  this->setCursor(Qt::CrossCursor);
+
+  correct_bb = false;
+  drag = false;
 }
 
-BaseFrameGraphicsView::BaseFrameGraphicsView(QGraphicsScene * scene, QWidget * parent) : QGraphicsView(scene,parent)
+BaseFrameGraphicsView::BaseFrameGraphicsView(QGraphicsScene* scene, QWidget* parent) : QGraphicsView(scene, parent)
 {
-	m_scene = scene;
-	this->setScene(m_scene);
+  m_scene = scene;
+  this->setScene(m_scene);
 
-	m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
-	m_item_rect = new QGraphicsRectItem(0,0,0,0);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
-	m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
+  m_item_pixmap = m_scene->addPixmap(QPixmap("../../res/opentld.png"));
+  m_item_rect = new QGraphicsRectItem(0, 0, 0, 0);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
 
-	m_pen = new QPen();
-	m_brush = new QBrush(Qt::SolidPattern);
+  m_pen = new QPen();
+  m_brush = new QBrush(Qt::SolidPattern);
 
-	m_pen->setColor(QColor(0,0,255));
-	m_brush->setColor(QColor(255,255,255,64));
-	m_item_rect->setPen(*m_pen);
-	m_item_rect->setBrush(*m_brush);
+  m_pen->setColor(QColor(0, 0, 255));
+  m_brush->setColor(QColor(255, 255, 255, 64));
+  m_item_rect->setPen(*m_pen);
+  m_item_rect->setBrush(*m_brush);
 
-	m_scene->addItem(m_item_rect);
+  m_scene->addItem(m_item_rect);
 
-	correct_bb = false;
-	drag = false;
+  m_item_rect_odom = new QGraphicsRectItem(0, 0, 0, 0);
+  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
+  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
+
+  m_pen_odom->setColor(QColor(255, 0, 0));
+  m_brush_odom->setColor(QColor(255, 255, 255, 64));
+  m_item_rect_odom->setPen(*m_pen_odom);
+  m_item_rect_odom->setBrush(*m_brush_odom);
+
+  m_scene->addItem(m_item_rect_odom);
+
+  correct_bb = false;
+  drag = false;
 }
 
-BaseFrameGraphicsView::~BaseFrameGraphicsView() 
+BaseFrameGraphicsView::~BaseFrameGraphicsView()
 {
-	delete m_pen;
-	delete m_brush;
+  delete m_pen;
+  delete m_brush;
 }
 
-QGraphicsRectItem * BaseFrameGraphicsView::get_bb() const
+QGraphicsRectItem* BaseFrameGraphicsView::get_bb() const
 {
-	return m_item_rect;
+  return m_item_rect;
+}
+
+QGraphicsRectItem* BaseFrameGraphicsView::get_bb_odom() const
+{
+  return m_item_rect_odom;
 }
 
 bool BaseFrameGraphicsView::get_correct_bb()
 {
-	return correct_bb;
+  return correct_bb;
 }
 
-QPen * BaseFrameGraphicsView::get_pen() const
+QPen* BaseFrameGraphicsView::get_pen() const
 {
-	return m_pen;
+  return m_pen;
 }
 
-QBrush * BaseFrameGraphicsView::get_brush() const
+QBrush* BaseFrameGraphicsView::get_brush() const
 {
-	return m_brush;
+  return m_brush;
 }
 
-void BaseFrameGraphicsView::image_received(const QImage & img)
+void BaseFrameGraphicsView::image_received(const QImage& img)
 {
-	m_item_pixmap->setPixmap(QPixmap::fromImage(img));
+  m_item_pixmap->setPixmap(QPixmap::fromImage(img));
+
+  return;
 }
 
-void BaseFrameGraphicsView::tracked_objet_changed(const QRectF & rect)
+void BaseFrameGraphicsView::tracked_object_changed(const QRectF& rect)
 {
-  //The tracker node sent a bounding box
+  // The tracker node sent a bounding box
   if(rect.width() || rect.height())
   {
     if(!this->correct_bb)
     {
       this->correct_bb = true;
       this->setCursor(Qt::ArrowCursor);
-    } 
+    }
   }
-  //The tracker node sent a bad bouding box
+  // The tracker node sent a bad bounding box
   else
   {
     if(this->correct_bb)
     {
       this->correct_bb = false;
-      this->setCursor(Qt::CrossCursor);  
+      this->setCursor(Qt::CrossCursor);
     }
   }
 
-  this->m_item_rect->setRect(rect);        
+  this->m_item_rect->setRect(rect);
+
+  return;
 }
 
-void BaseFrameGraphicsView::resizeEvent(QResizeEvent * event)
+void BaseFrameGraphicsView::odometry_changed(const QRectF& rect)
+{
+  this->m_item_rect->setRect(rect);
+
+  return;
+}
+
+void BaseFrameGraphicsView::resizeEvent(QResizeEvent* event)
 {
   fitInView(this->sceneRect(), Qt::KeepAspectRatio);
   QGraphicsView::resizeEvent(event);
+
+  return;
 }
 
-void BaseFrameGraphicsView::mousePressEvent(QMouseEvent * event)
+void BaseFrameGraphicsView::mousePressEvent(QMouseEvent* event)
 {
   float scale, offset_x, offset_y;
   this->computeScaleOffsets(scale, offset_x, offset_y);
 
-  qDebug() << "Press X : " << (event->pos().x()-offset_x)/scale << " Y : " << (event->pos().y()-offset_y)/scale;
+  qDebug() << "Press X : " << (event->pos().x() - offset_x) / scale << " Y : " << (event->pos().y() - offset_y) / scale;
 
   if(event->button() == Qt::LeftButton)
   {
     if(!correct_bb && !drag && !m_item_rect->isSelected())
     {
-      point.setX((event->pos().x()-offset_x)/scale);
-      point.setY((event->pos().y()-offset_y)/scale);
+      point.setX((event->pos().x() - offset_x) / scale);
+      point.setY((event->pos().y() - offset_y) / scale);
 
       drag = true;
     }
   }
+
   QGraphicsView::mousePressEvent(event);
+
+  return;
 }
 
-void BaseFrameGraphicsView::mouseMoveEvent(QMouseEvent * event)
+void BaseFrameGraphicsView::mouseMoveEvent(QMouseEvent* event)
 {
   float scale, offset_x, offset_y;
   this->computeScaleOffsets(scale, offset_x, offset_y);
@@ -167,18 +213,22 @@ void BaseFrameGraphicsView::mouseMoveEvent(QMouseEvent * event)
 
   if(!correct_bb && drag && !m_item_rect->isSelected())
   {
-    m_item_rect->setRect(point.x(), point.y(), ((event->pos().x()-offset_x)/scale) - point.x(), ((event->pos().y()-offset_y)/scale) - point.y());
+    m_item_rect->setRect(point.x(), point.y(), ((event->pos().x() - offset_x) / scale) - point.x(),
+                         ((event->pos().y() - offset_y) / scale) - point.y());
     this->update();
   }
+
   QGraphicsView::mouseMoveEvent(event);
+
+  return;
 }
 
-void BaseFrameGraphicsView::mouseReleaseEvent(QMouseEvent * event)
+void BaseFrameGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 {
   float scale, offset_x, offset_y;
   this->computeScaleOffsets(scale, offset_x, offset_y);
 
-  qDebug() << "Release X : " << (event->pos().x()-offset_x)/scale << " Y : " << (event->pos().y()-offset_y)/scale;
+  qDebug() << "Release X : " << (event->pos().x() - offset_x) / scale << " Y : " << (event->pos().y() - offset_y) / scale;
 
   if(event->button() == Qt::LeftButton)
   {
@@ -190,11 +240,14 @@ void BaseFrameGraphicsView::mouseReleaseEvent(QMouseEvent * event)
       drag = false;
     }
   }
+
   QGraphicsView::mouseReleaseEvent(event);
+
+  return;
 }
 
 /* Mathieu's function */
-void BaseFrameGraphicsView::computeScaleOffsets(float & scale, float & offsetX, float & offsetY) const
+void BaseFrameGraphicsView::computeScaleOffsets(float& scale, float& offsetX, float& offsetY) const
 {
   scale = 1.0f;
   offsetX = 0.0f;
@@ -222,12 +275,15 @@ void BaseFrameGraphicsView::computeScaleOffsets(float & scale, float & offsetX, 
 
   if(w < this->rect().width())
   {
-    offsetX = (this->rect().width() - w)/2.0f;
+    offsetX = (this->rect().width() - w) / 2.0f;
   }
+
   if(h < this->rect().height())
   {
-    offsetY = (this->rect().height() - h)/2.0f;
+    offsetY = (this->rect().height() - h) / 2.0f;
   }
-  //printf("offsetX=%f, offsetY=%f\n",offsetX, offsetY);
-}
 
+  //printf("offsetX=%f, offsetY=%f\n",offsetX, offsetY);
+
+  return;
+}

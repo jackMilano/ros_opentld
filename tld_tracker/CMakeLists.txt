@@ -41,6 +41,15 @@ include(ExternalProject)
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
+########################
+## Set Build Warnings ##
+########################
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfatal-errors")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wfatal-errors")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################

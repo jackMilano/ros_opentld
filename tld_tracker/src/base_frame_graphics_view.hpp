@@ -46,43 +46,53 @@
 #include <QtCore/QDebug>
 
 class BaseFrameGraphicsView : public QGraphicsView
-{   
-	Q_OBJECT
+{
+  Q_OBJECT
 
-	public:
-		BaseFrameGraphicsView(QWidget * parent);
-		BaseFrameGraphicsView(QGraphicsScene * scene = NULL, QWidget * parent = NULL);
-		~BaseFrameGraphicsView();
-		QGraphicsRectItem * get_bb() const;
-		bool get_correct_bb();
-		QPen * get_pen() const;
-		QBrush * get_brush() const;
+public:
+  BaseFrameGraphicsView(QWidget* parent);
+  BaseFrameGraphicsView(QGraphicsScene* scene = NULL, QWidget* parent = NULL);
+  ~BaseFrameGraphicsView();
+  QGraphicsRectItem* get_bb() const;
+  bool get_correct_bb();
+  QPen* get_pen() const;
+  QBrush* get_brush() const;
 
-	protected:
-		void resizeEvent(QResizeEvent * event);
-		void mousePressEvent(QMouseEvent * event);
-		void mouseMoveEvent(QMouseEvent * event);
-		void mouseReleaseEvent(QMouseEvent * event);
+  // odometry bounding box
+  QGraphicsRectItem* get_bb_odom() const;
 
-	private:
-		QPoint point;
-		bool correct_bb;
-		bool drag;
-		QGraphicsPixmapItem * m_item_pixmap;
-		QGraphicsRectItem * m_item_rect;
-		QGraphicsScene * m_scene;
-		QPen * m_pen;
-		QBrush * m_brush;
+protected:
+  void resizeEvent(QResizeEvent* event);
+  void mousePressEvent(QMouseEvent* event);
+  void mouseMoveEvent(QMouseEvent* event);
+  void mouseReleaseEvent(QMouseEvent* event);
 
-		/* Mathieu's function */
-		void computeScaleOffsets(float & scale, float & offsetX, float & offsetY) const;
+private:
+  QPoint point;
+  bool correct_bb;
+  bool drag;
+  QGraphicsPixmapItem* m_item_pixmap;
+  QGraphicsRectItem* m_item_rect;
+  QGraphicsScene* m_scene;
+  QPen* m_pen;
+  QBrush* m_brush;
 
-	public slots:
-		void image_received(const QImage & img);
-		void tracked_objet_changed(const QRectF & rect);
+  // odometry bounding box
+  QGraphicsRectItem* m_item_rect_odom;
+  QPen* m_pen_odom;
+  QBrush* m_brush_odom;
+
+
+  /* Mathieu's function */
+  void computeScaleOffsets(float& scale, float& offsetX, float& offsetY) const;
+
+public slots:
+  void image_received(const QImage& img);
+  void tracked_object_changed(const QRectF& rect);
+  void odometry_changed(const QRectF& rect);
 
 signals:
-		void sig_bb_set(QRectF rect);
+  void sig_bb_set(QRectF rect);
 };
 
 #endif
