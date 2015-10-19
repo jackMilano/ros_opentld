@@ -1,5 +1,5 @@
 <launch>
-  <arg name="image_topic" default="/kinect2/sd/image_color_rect"/>
+  <arg name="image_topic" default="/kinect2/qhd/image_color_rect"/>
   <arg name="load_model" default="false"/>
   <arg name="model_file" default=""/>
 
