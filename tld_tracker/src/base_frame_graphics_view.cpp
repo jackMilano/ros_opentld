@@ -37,10 +37,6 @@ BaseFrameGraphicsView::BaseFrameGraphicsView(QWidget* parent) : QGraphicsView(pa
   m_item_rect->setFlag(QGraphicsItem::ItemIsMovable);
   m_item_rect->setFlag(QGraphicsItem::ItemIsSelectable);
 
-  m_item_rect_odom = new QGraphicsRectItem();
-  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
-  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
-
   m_pen = new QPen();
   m_brush = new QBrush(Qt::SolidPattern);
 
@@ -50,6 +46,10 @@ BaseFrameGraphicsView::BaseFrameGraphicsView(QWidget* parent) : QGraphicsView(pa
   m_item_rect->setBrush(*m_brush);
 
   m_scene->addItem(m_item_rect);
+
+  m_item_rect_odom = new QGraphicsRectItem();
+  //m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
+  //m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
 
   m_pen_odom = new QPen();
   m_brush_odom = new QBrush(Qt::SolidPattern);
@@ -88,8 +88,11 @@ BaseFrameGraphicsView::BaseFrameGraphicsView(QGraphicsScene* scene, QWidget* par
   m_scene->addItem(m_item_rect);
 
   m_item_rect_odom = new QGraphicsRectItem(0, 0, 0, 0);
-  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
-  m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
+  //m_item_rect_odom->setFlag(QGraphicsItem::ItemIsMovable);
+  //m_item_rect_odom->setFlag(QGraphicsItem::ItemIsSelectable);
+
+  m_pen_odom = new QPen();
+  m_brush_odom = new QBrush(Qt::SolidPattern);
 
   m_pen_odom->setColor(QColor(255, 0, 0));
   m_brush_odom->setColor(QColor(255, 255, 255, 64));
@@ -168,7 +171,7 @@ void BaseFrameGraphicsView::tracked_object_changed(const QRectF& rect)
 
 void BaseFrameGraphicsView::odometry_changed(const QRectF& rect)
 {
-  this->m_item_rect->setRect(rect);
+  this->m_item_rect_odom->setRect(rect);
 
   return;
 }
