@@ -84,7 +84,7 @@ void Main::process()
 
         sendTrackedObject(target_bb.x, target_bb.y, target_bb.width, target_bb.height, 1.0);
 
-        ROS_INFO("Starting at %d %d %d %d\n", target_bb.x, target_bb.y, target_bb.width, target_bb.height);
+        ROS_INFO("ros_opentld: Starting at %d %d %d %d\n", target_bb.x, target_bb.y, target_bb.width, target_bb.height);
 
         // 'tld->selectObject' chiama 'detectorCascade->release()', 'detectorCascade->init()'
         // ed infine 'initialLearning()'
@@ -130,85 +130,85 @@ void Main::process()
 
       break;
 
-    // case TRACKING_FALSE_POSITIVE:
-    // if( correctBB && newBB )
-    // {
-    // sendTrackedObject(new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height, 1.0);
-    // ROS_INFO("Coordinate nuova Bounding Box: %d %d %d %d.\n", new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height);
+      // case TRACKING_FALSE_POSITIVE:
+      // if( correctBB && newBB )
+      // {
+      // sendTrackedObject(new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height, 1.0);
+      // ROS_INFO("Coordinate nuova Bounding Box: %d %d %d %d.\n", new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height);
 
-    // // Viene calcolata, a partire dalla bounding box corrispondente all'odometria,
-    // // la ROI nella quale ricercare il target.
-    // cv::Rect roi;
-    // roi.x = new_target_bb.x - new_target_bb.width;
-    // if( roi.x < 0 )
-    // {
-    // roi.x = 0;
-    // }
-    // roi.y = new_target_bb.y - new_target_bb.height;
-    // if( roi.y < 0 )
-    // {
-    // roi.y = 0;
-    // }
-    // roi.width = 3 * new_target_bb.width;
-    // if( (roi.x + roi.width) > tld->detectorCascade->imgWidth )
-    // {
-    // roi.width = tld->detectorCascade->imgWidth;
-    // }
-    // roi.height = 3 * new_target_bb.height;
-    // if( (roi.y + roi.height) > tld->detectorCascade->imgHeight )
-    // {
-    // roi.height = tld->detectorCascade->imgHeight;
-    // }
+      // // Viene calcolata, a partire dalla bounding box corrispondente all'odometria,
+      // // la ROI nella quale ricercare il target.
+      // cv::Rect roi;
+      // roi.x = new_target_bb.x - new_target_bb.width;
+      // if( roi.x < 0 )
+      // {
+      // roi.x = 0;
+      // }
+      // roi.y = new_target_bb.y - new_target_bb.height;
+      // if( roi.y < 0 )
+      // {
+      // roi.y = 0;
+      // }
+      // roi.width = 3 * new_target_bb.width;
+      // if( (roi.x + roi.width) > tld->detectorCascade->imgWidth )
+      // {
+      // roi.width = tld->detectorCascade->imgWidth;
+      // }
+      // roi.height = 3 * new_target_bb.height;
+      // if( (roi.y + roi.height) > tld->detectorCascade->imgHeight )
+      // {
+      // roi.height = tld->detectorCascade->imgHeight;
+      // }
 
-    // cv::Mat img_roi = img(roi);
-    // cv::Mat gray_roi = gray(roi);
+      // cv::Mat img_roi = img(roi);
+      // cv::Mat gray_roi = gray(roi);
 
-    // // Devo cambiare le dimensioni dell'immagine per il 'detectorCascade'?
-    // // tld->detectorCascade->imgWidth = gray_roi.cols;
-    // // tld->detectorCascade->imgHeight = gray_roi.rows;
-    // // tld->detectorCascade->imgWidthStep = gray_roi.step;
-    // // Questi sono i passaggi fatti in 'tld->selectObject':
-    // // 1. tld->detectorCascade->release()
-    // // - cancella i risultati precedenti e quindi la memoria dell'oggetto target e dell'immagine
-    // // 2. tld->detectorCascade->init()
-    // // - prima di chiamare questo membro bisogna settare 'imgWidth' e 'imgHeight'
-    // // - chiama 'initWindowsAndScales()'
-    // // - chiama 'initWindowOffsets()'
-    // // - inizializza le componenti del detector cascade
-    // // - inizializza il 'varianceFilter'
-    // // - inizializza il 'ensembleClassifier'
-    // // - inizializza il 'nnClassifier'
-    // // 3. tld->initialLearning()
-    // // - inizializza l'apprendimento delle tre componenti del detector cascade
+      // // Devo cambiare le dimensioni dell'immagine per il 'detectorCascade'?
+      // // tld->detectorCascade->imgWidth = gray_roi.cols;
+      // // tld->detectorCascade->imgHeight = gray_roi.rows;
+      // // tld->detectorCascade->imgWidthStep = gray_roi.step;
+      // // Questi sono i passaggi fatti in 'tld->selectObject':
+      // // 1. tld->detectorCascade->release()
+      // // - cancella i risultati precedenti e quindi la memoria dell'oggetto target e dell'immagine
+      // // 2. tld->detectorCascade->init()
+      // // - prima di chiamare questo membro bisogna settare 'imgWidth' e 'imgHeight'
+      // // - chiama 'initWindowsAndScales()'
+      // // - chiama 'initWindowOffsets()'
+      // // - inizializza le componenti del detector cascade
+      // // - inizializza il 'varianceFilter'
+      // // - inizializza il 'ensembleClassifier'
+      // // - inizializza il 'nnClassifier'
+      // // 3. tld->initialLearning()
+      // // - inizializza l'apprendimento delle tre componenti del detector cascade
 
-    // // chiama 'detectorCascade->detect' che dipende dalla dimensione dell'immagine iniziale
-    // tld->processROIImage(img_roi);
+      // // chiama 'detectorCascade->detect' che dipende dalla dimensione dell'immagine iniziale
+      // tld->processROIImage(img_roi);
 
-    // if(showOutput)
-    // {
-    // if(tld->currBB != NULL)
-    // {
-    // sendTrackedObject(tld->currBB->x, tld->currBB->y, tld->currBB->width, tld->currBB->height, tld->currConf);
+      // if(showOutput)
+      // {
+      // if(tld->currBB != NULL)
+      // {
+      // sendTrackedObject(tld->currBB->x, tld->currBB->y, tld->currBB->width, tld->currBB->height, tld->currConf);
 
-    // // reInit = false;
-    // newBB = false; // Non appena si è trovata una bounding box valida si esce da questo stato.
-    // STATE = TRACKING;
-    // }
-    // else
-    // {
-    // ROS_WARN("TRACKING_FALSE_POSITIVE: target non trovato!");
-    // sendTrackedObject(1, 1, 1, 1, 0.0);
-    // }
-    // }
+      // // reInit = false;
+      // newBB = false; // Non appena si è trovata una bounding box valida si esce da questo stato.
+      // STATE = TRACKING;
+      // }
+      // else
+      // {
+      // ROS_WARN("TRACKING_FALSE_POSITIVE: target non trovato!");
+      // sendTrackedObject(1, 1, 1, 1, 0.0);
+      // }
+      // }
 
 
-    // }
-    // else // Aspettiamo finché non è arrivata la bounding box.
-    // {
-    // ros::Duration(1.0).sleep();
-    // ROS_INFO("Sto aspettando la nuova BB.");
-    // }
-    // break;
+      // }
+      // else // Aspettiamo finché non è arrivata la bounding box.
+      // {
+      // ros::Duration(1.0).sleep();
+      // ROS_INFO("Sto aspettando la nuova BB.");
+      // }
+      // break;
     case STOPPED:
       ros::Duration(1.0).sleep();
       ROS_INFO("Tracker stopped");
@@ -268,14 +268,19 @@ void Main::imageReceivedCB(const sensor_msgs::ImageConstPtr& msg)
   return;
 }
 
+//XXX: ogni volta che viene chiamata questa callback viene chiamato anche 'reset()'!
 void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
 {
-  reset(); //XXX: ogni volta che viene chiamata questa callback viene chiamato anche 'reset()'!!!
+  // Senza il reset non funziona la reinizializzazione.
+  // XXX: è possibile chiamare solo alcune delle funzioni che vengono chiamate da reset?
+  reset();
+
   ROS_ASSERT(msg->bb.x >= 0);
   ROS_ASSERT(msg->bb.y >= 0);
   ROS_ASSERT(msg->bb.width > 0);
   ROS_ASSERT(msg->bb.height > 0);
-  ROS_INFO("Bounding Box received");
+  ROS_INFO("ros_opentld: Bounding Box received. x = %d, y = %d, width = %d, height = %d.", msg->bb.x, msg->bb.y,
+           msg->bb.width, msg->bb.height);
 
   target_bb.x = msg->bb.x;
   target_bb.y = msg->bb.y;
@@ -288,7 +293,7 @@ void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
   }
   catch(cv_bridge::Exception& e)
   {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
+    ROS_ERROR("ros_opentld: cv_bridge exception: %s", e.what());
     return;
   }
 
@@ -297,7 +302,7 @@ void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
   return;
 }
 
-// void Main::bbReceivedCB(const tld_msgs::BoundingBoxConstPtr & msg)
+// void Main::bbReceivedCB(const tld_msgs::BoundingBoxConstPtr& msg)
 // {
 // ROS_INFO("Dentro 'bbReceivedCB'!");
 // ROS_ASSERT(msg->bb.x >= 0);
@@ -350,14 +355,14 @@ void Main::cmdReceivedCB(const std_msgs::CharConstPtr& cmd)
     reset();
     break;
 
-  case 'z':
-    ROS_INFO("Comando ricevuto: 'z'!");
-    // reinit();
-    // state = TRACKING_FALSE_POSITIVE;
-    // reInit = false;
-    // newBB = false;
-    reset();
-    break;
+    //case 'z':
+    //ROS_INFO("Comando ricevuto: 'z'!");
+    //// reinit();
+    //// state = TRACKING_FALSE_POSITIVE;
+    //// reInit = false;
+    //// newBB = false;
+    //reset();
+    //break;
 
   default:
     break;
@@ -469,7 +474,7 @@ void Main::importModel()
 
 void Main::reset()
 {
-  ROS_INFO("Sto effettuando il reset.");
+  ROS_INFO("ros_opentld: sto effettuando il reset!");
 
   correctBB = false;
   state = INIT;
@@ -494,4 +499,3 @@ cv::Rect Main::faceDetection()
 
   return faces[0];
 }
-
