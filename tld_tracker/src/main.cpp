@@ -24,9 +24,15 @@
  */
 
 #include "main.hpp"
+
 #include <ros/time.h>
 #include <ros/duration.h>
+
 #include <sensor_msgs/image_encodings.h>
+
+
+#define WAIT_TRANS_TIME 5.0f // Tempo di attesa per la trasformata 'world-->odom'
+
 
 namespace enc = sensor_msgs::image_encodings;
 
@@ -58,7 +64,6 @@ void Main::process()
 
         ROS_DEBUG("'gray.cols' = %d.", gray.cols);
         ROS_DEBUG("'gray.rows' = %d.", gray.rows);
-        //ROS_DEBUG("'gray.step' = %d.", gray.step);
 
         state = TRACKER_INIT;
       }
@@ -119,6 +124,8 @@ void Main::process()
         {
           if(tld->currBB != NULL)
           {
+            tld_curr_bb_width = tld->currBB->width;
+            tld_curr_bb_height = tld->currBB->height;
             sendTrackedObject(tld->currBB->x, tld->currBB->y, tld->currBB->width, tld->currBB->height, tld->currConf);
           }
           else
@@ -130,85 +137,6 @@ void Main::process()
 
       break;
 
-    // case TRACKING_FALSE_POSITIVE:
-    // if( correctBB && newBB )
-    // {
-    // sendTrackedObject(new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height, 1.0);
-    // ROS_INFO("Coordinate nuova Bounding Box: %d %d %d %d.\n", new_target_bb.x, new_target_bb.y, new_target_bb.width, new_target_bb.height);
-
-    // // Viene calcolata, a partire dalla bounding box corrispondente all'odometria,
-    // // la ROI nella quale ricercare il target.
-    // cv::Rect roi;
-    // roi.x = new_target_bb.x - new_target_bb.width;
-    // if( roi.x < 0 )
-    // {
-    // roi.x = 0;
-    // }
-    // roi.y = new_target_bb.y - new_target_bb.height;
-    // if( roi.y < 0 )
-    // {
-    // roi.y = 0;
-    // }
-    // roi.width = 3 * new_target_bb.width;
-    // if( (roi.x + roi.width) > tld->detectorCascade->imgWidth )
-    // {
-    // roi.width = tld->detectorCascade->imgWidth;
-    // }
-    // roi.height = 3 * new_target_bb.height;
-    // if( (roi.y + roi.height) > tld->detectorCascade->imgHeight )
-    // {
-    // roi.height = tld->detectorCascade->imgHeight;
-    // }
-
-    // cv::Mat img_roi = img(roi);
-    // cv::Mat gray_roi = gray(roi);
-
-    // // Devo cambiare le dimensioni dell'immagine per il 'detectorCascade'?
-    // // tld->detectorCascade->imgWidth = gray_roi.cols;
-    // // tld->detectorCascade->imgHeight = gray_roi.rows;
-    // // tld->detectorCascade->imgWidthStep = gray_roi.step;
-    // // Questi sono i passaggi fatti in 'tld->selectObject':
-    // // 1. tld->detectorCascade->release()
-    // // - cancella i risultati precedenti e quindi la memoria dell'oggetto target e dell'immagine
-    // // 2. tld->detectorCascade->init()
-    // // - prima di chiamare questo membro bisogna settare 'imgWidth' e 'imgHeight'
-    // // - chiama 'initWindowsAndScales()'
-    // // - chiama 'initWindowOffsets()'
-    // // - inizializza le componenti del detector cascade
-    // // - inizializza il 'varianceFilter'
-    // // - inizializza il 'ensembleClassifier'
-    // // - inizializza il 'nnClassifier'
-    // // 3. tld->initialLearning()
-    // // - inizializza l'apprendimento delle tre componenti del detector cascade
-
-    // // chiama 'detectorCascade->detect' che dipende dalla dimensione dell'immagine iniziale
-    // tld->processROIImage(img_roi);
-
-    // if(showOutput)
-    // {
-    // if(tld->currBB != NULL)
-    // {
-    // sendTrackedObject(tld->currBB->x, tld->currBB->y, tld->currBB->width, tld->currBB->height, tld->currConf);
-
-    // // reInit = false;
-    // newBB = false; // Non appena si è trovata una bounding box valida si esce da questo stato.
-    // STATE = TRACKING;
-    // }
-    // else
-    // {
-    // ROS_WARN("TRACKING_FALSE_POSITIVE: target non trovato!");
-    // sendTrackedObject(1, 1, 1, 1, 0.0);
-    // }
-    // }
-
-
-    // }
-    // else // Aspettiamo finché non è arrivata la bounding box.
-    // {
-    // ros::Duration(1.0).sleep();
-    // ROS_INFO("Sto aspettando la nuova BB.");
-    // }
-    // break;
     case STOPPED:
       ros::Duration(1.0).sleep();
       ROS_INFO("Tracker stopped");
@@ -297,26 +225,6 @@ void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
   return;
 }
 
-// void Main::bbReceivedCB(const tld_msgs::BoundingBoxConstPtr & msg)
-// {
-// ROS_INFO("Dentro 'bbReceivedCB'!");
-// ROS_ASSERT(msg->bb.x >= 0);
-// ROS_ASSERT(msg->bb.y >= 0);
-// ROS_ASSERT(msg->bb.width > 0);
-// ROS_ASSERT(msg->bb.height > 0);
-
-// new_target_bb.x = msg->x;
-// new_target_bb.y = msg->y;
-// new_target_bb.width = msg->width;
-// new_target_bb.height = msg->height;
-
-// // correctBB = true;
-// newBB = true;
-// reInit = true;
-
-// return;
-// }
-
 void Main::cmdReceivedCB(const std_msgs::CharConstPtr& cmd)
 {
 
@@ -350,18 +258,207 @@ void Main::cmdReceivedCB(const std_msgs::CharConstPtr& cmd)
     reset();
     break;
 
-  case 'z':
-    ROS_INFO("Comando ricevuto: 'z'!");
-    // reinit();
-    // state = TRACKING_FALSE_POSITIVE;
-    // reInit = false;
-    // newBB = false;
-    reset();
-    break;
-
   default:
     break;
   }
+
+  return;
+}
+
+
+void Main::depthCameraInfoCb(const sensor_msgs::CameraInfo::ConstPtr& depth_camera_info)
+{
+  // Load the camera model structure with the pinhole model (Intrinsic + distortion coefficients)
+  // of the IR camera (depth).
+  cam_model_.fromCameraInfo(depth_camera_info);
+
+  cam_frame_id = depth_camera_info->header.frame_id;
+
+  ROS_INFO("Depth Camera Model Loaded");
+
+  // Do it once since the camera model is constant
+  depth_camera_info_sub.shutdown();
+
+  ROS_INFO("Camera Info subscriber shut down");
+
+  // Le dimensioni dell'immagine servono a capire se ci si trova in un "out-of-view".
+  img_width = depth_camera_info->width;
+  img_height = depth_camera_info->height;
+
+  // Use correct principal point from calibration
+  center_x = cam_model_.cx();
+  center_y = cam_model_.cy();
+
+  // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
+  unit_scaling = depth_image_proc::DepthTraits<uint16_t>::toMeters(uint16_t(1));
+  constant_x = unit_scaling / cam_model_.fx();
+  constant_y = unit_scaling / cam_model_.fy();
+
+  camera_info_received = true;
+
+  ROS_INFO("depthCameraInfoCb end.");
+
+  return;
+}
+
+// La funzione proietta in 2D le coordinate 3D dell'odometria.
+// XXX: si da per scontato che il sistema di riferimento sia lo stesso e sia quello della camera.
+void Main::odomToImgPlan(const double odom_x, const double odom_y, const double odom_z, int& img_x, int& img_y)
+{
+  const uint16_t p_depth = depth_image_proc::DepthTraits<uint16_t>::fromMeters(odom_z);
+
+  img_x = static_cast<int>(odom_x / (p_depth * constant_x) + center_x);
+  img_y = static_cast<int>(odom_y / (p_depth * constant_y) + center_y);
+
+  return;
+}
+
+// Riceve l'odometria di kalman e la converte in 2D sul piano
+void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_msg)
+{
+  //ROS_INFO("ros_tld_tracker: odometria kalman ricevuta");
+
+  //mutex.lock();
+  //semaphore.lock();
+
+  // Non appena è disponibile la transform tra il sistema di riferimento dell'odometria e
+  // quello della camera (deve essere già attivo `robot_localization`), si procede all'operazione di
+  // conversione della posizione 3D dell'odometria dal primo sistema di riferimento all'altro.
+  if(!transform_listener.waitForTransform(kalman_odom_msg->header.frame_id, cam_frame_id, kalman_odom_msg->header.stamp,
+                                          ros::Duration(WAIT_TRANS_TIME)))
+  {
+    ROS_ERROR("reset_visual_tracker: wait for transform %s --> %s timed out!!", kalman_odom_msg->header.frame_id.c_str(),
+              cam_frame_id.c_str());
+    return;
+  }
+
+  // I primi 3 secondi diamo il tempo a Kalman di convergere
+  if(!kalman_has_converged)
+  {
+    ros::Duration time_passed = ros::Time::now() - start_time;
+
+    if(time_passed > ros::Duration(3.0))
+    {
+      kalman_has_converged = true;
+      ROS_INFO("Sono passati 3 secondi!!");
+    }
+  }
+
+  geometry_msgs::PoseStamped odom_pose;
+  odom_pose.header = kalman_odom_msg->header; // frame_id = "kalman_odom_msg"
+  odom_pose.pose = kalman_odom_msg->pose.pose;
+  geometry_msgs::PoseStamped cam_odom; // frame_id = "kinect2_rgb_optical_frame"
+  transform_listener.transformPose(cam_frame_id, odom_pose, cam_odom);
+
+  // Calcolo posizione sul piano immagine (sistema di riferimento camera) dell'odometria.
+  int odom_img_x = 0, odom_img_y = 0;
+  odomToImgPlan(cam_odom.pose.position.x, cam_odom.pose.position.y, cam_odom.pose.position.z, odom_img_x, odom_img_y);
+
+  // PUBBLICAZIONE DELLA BOUNDING BOX CORRISPONDENTE ALLA POSIZIONE DELL'ODOMETRIA:
+  // - serve per i test
+  // - la bounding box viene calcolata come se avesse il centro nella posizione dell'odometria
+  //   (2D, sistema di riferimento camera)
+  // - la larghezza e l'altezza della bounding box corrispondono a quelle dell'ultima bounding box valida
+  odom_bb.header.seq = img_header.seq;
+  odom_bb.header.stamp = ros::Time::now();
+  odom_bb.header.frame_id = cam_frame_id;
+
+  int tmp_tld_currbb_width;
+
+  if(tld_curr_bb_width != 1)
+  {
+    tmp_tld_currbb_width = tld_curr_bb_width;
+    last_tld_curr_bb_width = tld_curr_bb_width;
+  }
+  else
+  {
+    if(last_tld_curr_bb_width > 1)
+    {
+      tmp_tld_currbb_width = last_tld_curr_bb_width;
+    }
+    else
+    {
+      tmp_tld_currbb_width = 36;
+    }
+  }
+
+  int tmp_tld_currbb_height;
+
+  if(tld_curr_bb_height != 1)
+  {
+    tmp_tld_currbb_height = tld_curr_bb_height;
+    last_tld_curr_bb_height = tld_curr_bb_height;
+  }
+  else
+  {
+    if(last_tld_curr_bb_height > 1)
+    {
+      tmp_tld_currbb_height = last_tld_curr_bb_height;
+    }
+    else
+    {
+      tmp_tld_currbb_height = 36;
+    }
+  }
+
+  odom_bb.x = odom_img_x - static_cast<int>(round(static_cast<double>(tld_curr_bb_width) / 2.0));
+
+  if(odom_bb.x < 0)
+  {
+    ROS_WARN("Attenzione! La coordinata 'x' della Bounding Box dell'odometria calcolata è negativa. Viene azzerata.");
+    odom_bb.x = 0;
+  }
+
+  odom_bb.y = odom_img_y - static_cast<int>(round(static_cast<double>(tld_curr_bb_height) / 2.0));
+
+  if(odom_bb.y < 0)
+  {
+    ROS_WARN("Attenzione! La coordinata 'y' della Bounding Box dell'odometria calcolata è negativa. Viene azzerata.");
+    odom_bb.y = 0;
+  }
+
+  odom_bb.width = tld_curr_bb_width;
+  odom_bb.height = tld_curr_bb_height;
+
+  odom_bb.confidence = 1.0f;
+
+  if((odom_img_x < 0) || (odom_img_x + odom_bb.width - 2) > img_width || (odom_img_y < 0)
+      || (odom_img_y + odom_bb.height - 2) > img_height)
+  {
+    if(odom_img_x < 0)
+    {
+      ROS_WARN("Out of view. odom_img_x = %d", odom_img_x);
+    }
+
+    if((odom_img_x + tld_curr_bb_width - 2) > img_width)
+    {
+      ROS_WARN("Out of view. odom_img_x = %d, img_width = %d, tld_currbb_width = %d", odom_img_x, img_width,
+               tld_curr_bb_width);
+    }
+
+    if(odom_img_y < 0)
+    {
+      ROS_WARN("Out of view. odom_img_y = %d", odom_img_y);
+    }
+
+    if((odom_img_y + tld_curr_bb_height - 2) > img_height)
+    {
+      ROS_WARN("Out of view. odom_img_y = %d, img_height = %d, tld_currbb_height = %d", odom_img_y, img_height,
+               tld_curr_bb_height);
+    }
+
+    out_of_view = true;
+  }
+  else
+  {
+    out_of_view = false;
+  }
+
+  //ROS_INFO("ros_tld_tracker: bounding box odometria inviata");
+  pub_odom_rect.publish(odom_bb);
+
+  //mutex.unlock();
+  //semaphore.unlock();
 
   return;
 }
@@ -386,13 +483,120 @@ bool Main::newImageReceived()
   return true;
 }
 
+// Quando l'ultima confidenza restituita da TLD e' nulla, si invia a tld un'immagine nera tranne
+// in una search_area incentrata nel centro della bounding box restituita dall'odometria
+// - spostarlo in 'imageReceivedCB' e farlo per ogni immagine?
+// - inserire un controllo sul tempo
 void Main::getLastImageFromBuffer()
 {
   mutex.lock();
   img_header = img_buffer_ptr->header;
-  img = img_buffer_ptr->image;
+  // TODO: capire se img e' una shallow copy o una deep copy di img_buffer_ptr->image
+  img = img_buffer_ptr->image; // img e' di tipo 'cv::Mat'
 
+  //cv::Mat forward_img = img.clone(); // deep copy
+
+  cv::Mat roi_img;
+
+  //TODO: implementare il ROI
+  //TODO: ingrandire ulteriormente l'area
+  // Se la confidenza e' nulla, l'oggetto e' uscito dalla scena, oppure e' coperto, se e' coperto gli si dice di cercare in una sotto-search_area data dalla bounding box dell'odometria
+  // Controlliamo anche di avere ricevuto le informazioni riguardanti la camera
+  if(tld && tld->currConf == 0 && !out_of_view && camera_info_received && odom_bb.x != -1 && kalman_has_converged)
+  {
+    ROS_WARN("Viene passata la maschera!");
+
+    // l'area di ricerca e' due volte quella della bounding box
+    // nel caso la estendersi a sinistra non sia possibile, ci estendiamo a destra
+    int accum_width = 0;
+    // nel caso la estendersi verso l'alto non sia possibile, ci estendiamo verso l'alto
+    int accum_height = 0;
+    // nel caso in cui estendersi verso destra non sia possibile, e invece ci sia ancora spazio a sinistra, ci estendiamo a sinistra
+    int accum_x = 0;
+    // nel caso in cui estendersi verso il basso non sia possibile, e invece ci sia ancora spazio in alto, ci estendiamo verso l'alto
+    int accum_y = 0;
+
+    int search_area_x = odom_bb.x - odom_bb.width;
+
+    if(search_area_x < 0)
+    {
+      ROS_WARN("x < 0");
+      //accum_width = search_area_x * (-1);
+      search_area_x = 0;
+    }
+
+    int search_area_y = odom_bb.y - odom_bb.height;
+
+    if(search_area_y < 0)
+    {
+      ROS_WARN("y < 0");
+      //accum_height = search_area_y * (-1);
+      search_area_y = 0;
+    }
+
+    int search_area_width = (odom_bb.width * 2) + accum_width;
+
+    if(search_area_width > img.cols)
+    {
+      ROS_WARN("width > img_cols");
+      //accum_x = search_area_width - img.cols;
+      search_area_width = img.cols;
+    }
+
+    int search_area_height = (odom_bb.height * 2) + accum_height;
+
+    if(search_area_height > img.rows)
+    {
+      ROS_WARN("height > img_rows");
+      //accum_y = search_area_height - img.rows;
+      search_area_height = img.rows;
+    }
+
+    //// TODO: ri-abilitare questi controlli
+    ////if(search_area_x > 0)
+    ////{
+    ////search_area_x = search_area_x - accum_x;
+
+    ////if(search_area_x < 0)
+    ////{
+    ////search_area_x = 0;
+    ////}
+    ////}
+
+    ////if(search_area_y > 0)
+    ////{
+    ////search_area_y = search_area_y - accum_y;
+
+    ////if(search_area_y < 0)
+    ////{
+    ////search_area_y = 0;
+    ////}
+    ////}
+
+    // Calcolo della ROI
+    cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
+    cv::Mat clone_img = img.clone(); //TODO: valutare se si possa rimuovere
+    //roi_img = clone_img(search_area);
+    //ROS_INFO("roi_img rows = %d, roi_img cols = %d.", roi_img.rows, roi_img.cols);
+
+    //roi_img.copyTo(black_mat);
+
+    cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+    ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
+    clone_img.copyTo(black_mat(search_area));
+    ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
+
+    // Viene inviata l'immagine sul topic per la gui (serve solo per il debug visivo in realta')
+    cv_bridge::CvImage redirected_img_msg;
+    redirected_img_msg.header = img_header;
+    redirected_img_msg.encoding = img_buffer_ptr->encoding;
+    redirected_img_msg.image = black_mat;
+    pub_redirected_image.publish(redirected_img_msg.toImageMsg()); // Viene pubblicata la ROI ingrandita all'inverosimile
+  }
+
+  //ROS_WARN("PRIMA DELLA CONVERSIONE");
   cv::cvtColor(img, gray, CV_BGR2GRAY);
+  //cv::cvtColor(roi_img, gray, CV_BGR2GRAY);
 
   img_buffer_ptr.reset();
   mutex.unlock();

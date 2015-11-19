@@ -6,9 +6,11 @@ project(tld_tracker)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
+  image_geometry
   roscpp
   sensor_msgs
   std_msgs
+  tf
   tld_msgs
 )
 
@@ -111,7 +113,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
   LIBRARIES libopentld
   CATKIN_DEPENDS roscpp cv_bridge std_msgs sensor_msgs tld_msgs
 #  DEPENDS system_lib
@@ -134,6 +136,9 @@ include(${QT_USE_FILE})
 # include_directories(include)
 
 include_directories(
+  #../tld_tracker/include/tld_tracker/depth_traits.h
+  #${tld_tracker_INCLUDE_DIRS}}
+  include
   ${catkin_INCLUDE_DIRS}
   ${OPENTLD_OUTPUT_DIR}/include/libopentld
 )

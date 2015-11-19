@@ -1,10 +1,12 @@
 <launch>
+
   <arg name="image_topic" default="/kinect2/qhd/image_color_rect"/>
+  <arg name="redirected_image_topic" default="redirected_image_gui"/>
   <arg name="load_model" default="false"/>
   <arg name="model_file" default=""/>
 
   <include file="$(find tld_tracker)/launch/ros_tld_gui.launch">
-    <arg name="image_topic" value="$(arg image_topic)"/>
+    <arg name="redirected_image_topic" value="$(arg redirected_image_topic)"/> <!-- passiamo l'immagine restituita dal nodo tracker -->
   </include>
 
   <include file="$(find tld_tracker)/launch/ros_tld_tracker.launch">

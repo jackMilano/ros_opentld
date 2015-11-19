@@ -46,14 +46,27 @@
 #include <opencv2/objdetect/objdetect.hpp>
 
 #include <ros/ros.h>
+
 #include <cv_bridge/cv_bridge.h>
-#include <std_msgs/Header.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
-#include <tld_msgs/Target.h>
-#include <tld_msgs/BoundingBox.h>
 #include <std_msgs/Char.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Header.h>
+#include <tld_msgs/BoundingBox.h>
+#include <tld_msgs/Target.h>
+
+// TF libraries
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+
 #include <string>
+
+// Parametri camera
+#include <tld_tracker/depth_traits.h> // 'depth_image_proc'
+#include <image_geometry/pinhole_camera_model.h>
+
 
 class Main
 {
@@ -84,10 +97,23 @@ public:
     sub2 = n.subscribe("bounding_box", 1000, &Main::targetReceivedCB, this);
     sub3 = n.subscribe("cmds", 1000, &Main::cmdReceivedCB, this);
 
-    //new_target_bb.x = 0;
-    //new_target_bb.y = 0;
-    //new_target_bb.width = 0;
-    //new_target_bb.height = 0;
+    sub_kalman = n.subscribe("odometry/filtered", 1000, &Main::kalmanOdomReceivedCB, this);
+    // Callback per ottenere i parametri intrinseci della camera, dato che il modello della camera
+    // è costante questa callback verrà eseguita una sola volta.
+    depth_camera_info_sub = n.subscribe("/kinect2/qhd/camera_info", 1000, &Main::depthCameraInfoCb, this);
+    tf::TransformListener transform_listener;
+
+    odom_bb.x = -1;
+    odom_bb.y = -1;
+    odom_bb.width = -1;
+    odom_bb.height = -1;
+
+    pub_odom_rect = n.advertise<tld_msgs::BoundingBox>("odom_bb", 1000, true);
+    pub_redirected_image = n.advertise<sensor_msgs::Image>("redirected_image_gui", 1000, true);
+
+    start_time = ros::Time::now();
+    last_tld_curr_bb_width = 36;
+    last_tld_curr_bb_height = 36;
 
     semaphore.lock();
   }
@@ -108,6 +134,31 @@ private:
   std::string modelImportFile;
   std::string modelExportFile;
 
+  bool kalman_has_converged;
+  bool out_of_view;
+  ros::Time start_time;
+
+  // Camera parameters
+  image_geometry::PinholeCameraModel cam_model_;
+  bool camera_info_received;
+  bool is_false_positive;
+  double min_confidence;
+  double point_max_height;
+  double unit_scaling;
+  double z_thresh;
+  float center_x, center_y;
+  float constant_x, constant_y;
+  int img_height, img_width;
+  std::string cam_frame_id;
+
+  int tld_curr_bb_width;
+  int tld_curr_bb_height;
+  int last_tld_curr_bb_width;
+  int last_tld_curr_bb_height;
+
+
+  tld_msgs::BoundingBox odom_bb;
+
   enum
   {
     INIT,
@@ -117,9 +168,8 @@ private:
   } state;
 
   bool correctBB;
-  cv::Rect target_bb;
-  // cv::Rect new_target_bb;
   cv::Mat target_image;
+  cv::Rect target_bb;
 
   std_msgs::Header img_header;
   cv::Mat img;
@@ -133,6 +183,13 @@ private:
   ros::Subscriber sub1;
   ros::Subscriber sub2;
   ros::Subscriber sub3;
+  ros::Subscriber depth_camera_info_sub;
+
+  ros::Publisher pub_odom_rect;
+  ros::Publisher pub_redirected_image;
+  ros::Subscriber sub_kalman;
+
+  tf::TransformListener transform_listener;
 
   std::string face_cascade_path;
   cv::CascadeClassifier face_cascade;
@@ -157,6 +214,21 @@ private:
   * \brief ROS command callback.
   */
   void cmdReceivedCB(const std_msgs::CharConstPtr& cmd);
+
+  /*!
+  * \brief ROS command callback.
+  */
+  void kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& cmd);
+
+  /*!
+  * \brief ROS command callback.
+  */
+  void depthCameraInfoCb(const sensor_msgs::CameraInfo::ConstPtr& depth_camera_info);
+
+  /*!
+  * \brief ROS command callback.
+  */
+  void odomToImgPlan(const double odom_x, const double odom_y, const double odom_z, int& img_x, int& img_y);
 
   /*!
   * \brief This function sends the tracked object as a BoudingBox message.

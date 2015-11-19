@@ -173,6 +173,8 @@ void BaseFrame::image_receivedCB(const sensor_msgs::ImageConstPtr& msg)
                      QImage::Format_Indexed8);
     }
 
+    //TODO: se l'ultima confidenza ricevuta e' nulla si invia una maschera
+
     emit sig_image_received(image);
 
     if(first_image)
