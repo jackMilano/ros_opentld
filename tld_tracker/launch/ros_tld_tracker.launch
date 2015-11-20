@@ -1,4 +1,5 @@
 <launch>
+
   <!-- declare arg to be passed in -->
   <arg name="load_model" default="false"/>
   <arg name="auto_face_detection" default="false"/>
@@ -8,7 +9,7 @@
   <arg name="image_topic" default="/camera/rgb/image_raw"/>
 
   <!-- Nodes -->
-  <node name="ros_tld_tracker_node" pkg="tld_tracker" type="tld_tracker_node" output="screen">
+  <node name="ros_tld_tracker_node" pkg="tld_tracker" type="tld_tracker_node" output="screen" required="true">
     <!-- remap of topics -->
     <remap from="image" to="$(arg image_topic)"/>
     <remap from="bounding_box" to="tld_gui_bb"/>
@@ -28,5 +29,5 @@
     <param name="height" value="200" type="int"/>
     <param name="correctBB" value="false" type="bool"/>
   </node>
-</launch>
 
+</launch>
