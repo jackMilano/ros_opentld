@@ -1,6 +1,6 @@
 <launch>
   <!-- declare arg to be passed in -->
-  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="image_topic" default="/kinect2/qhd/image_color_rect"/>
   <arg name="redirected_image_topic" default="redirected_image_gui"/>
 
   <!-- Nodes -->
