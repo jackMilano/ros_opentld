@@ -89,7 +89,7 @@ void Main::process()
 
         sendTrackedObject(target_bb.x, target_bb.y, target_bb.width, target_bb.height, 1.0);
 
-        ROS_INFO("Starting at %d %d %d %d\n", target_bb.x, target_bb.y, target_bb.width, target_bb.height);
+        ROS_INFO("ros_opentld: Starting at %d %d %d %d\n", target_bb.x, target_bb.y, target_bb.width, target_bb.height);
 
         // 'tld->selectObject' chiama 'detectorCascade->release()', 'detectorCascade->init()'
         // ed infine 'initialLearning()'
@@ -136,7 +136,6 @@ void Main::process()
       }
 
       break;
-
     case STOPPED:
       ros::Duration(1.0).sleep();
       ROS_INFO("Tracker stopped");
@@ -196,14 +195,19 @@ void Main::imageReceivedCB(const sensor_msgs::ImageConstPtr& msg)
   return;
 }
 
+//XXX: ogni volta che viene chiamata questa callback viene chiamato anche 'reset()'!
 void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
 {
-  reset(); //XXX: ogni volta che viene chiamata questa callback viene chiamato anche 'reset()'!!!
+  // Senza il reset non funziona la reinizializzazione.
+  // XXX: è possibile chiamare solo alcune delle funzioni che vengono chiamate da reset?
+  reset();
+
   ROS_ASSERT(msg->bb.x >= 0);
   ROS_ASSERT(msg->bb.y >= 0);
   ROS_ASSERT(msg->bb.width > 0);
   ROS_ASSERT(msg->bb.height > 0);
-  ROS_INFO("Bounding Box received");
+  ROS_INFO("ros_opentld: Bounding Box received. x = %d, y = %d, width = %d, height = %d.", msg->bb.x, msg->bb.y,
+           msg->bb.width, msg->bb.height);
 
   target_bb.x = msg->bb.x;
   target_bb.y = msg->bb.y;
@@ -216,7 +220,7 @@ void Main::targetReceivedCB(const tld_msgs::TargetConstPtr& msg)
   }
   catch(cv_bridge::Exception& e)
   {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
+    ROS_ERROR("ros_opentld: cv_bridge exception: %s", e.what());
     return;
   }
 
@@ -673,7 +677,7 @@ void Main::importModel()
 
 void Main::reset()
 {
-  ROS_INFO("Sto effettuando il reset.");
+  ROS_INFO("ros_opentld: sto effettuando il reset!");
 
   correctBB = false;
   state = INIT;
@@ -698,4 +702,3 @@ cv::Rect Main::faceDetection()
 
   return faces[0];
 }
-

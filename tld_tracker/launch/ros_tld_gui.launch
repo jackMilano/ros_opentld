@@ -5,10 +5,10 @@
 
   <!-- Nodes -->
   <node name="ros_tld_gui_node" pkg="tld_tracker" type="tld_gui_node" output="screen" required="true" >
-    <remap from="image" to="$(arg redirected_image_topic)"/>
-    <remap from="tracked_object" to="tld_tracked_object"/>
     <remap from="fps_tracker" to="tld_fps"/>
+    <remap from="image" to="$(arg image_topic)"/>
+    <!--<remap from="image" to="$(arg redirected_image_topic)"/>-->
+    <remap from="tracked_object" to="tld_tracked_object"/>
   </node>
 
 </launch>
-
