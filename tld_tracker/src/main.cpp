@@ -136,6 +136,7 @@ void Main::process()
       }
 
       break;
+
     case STOPPED:
       ros::Duration(1.0).sleep();
       ROS_INFO("Tracker stopped");
@@ -331,7 +332,7 @@ void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_ms
   if(!transform_listener.waitForTransform(kalman_odom_msg->header.frame_id, cam_frame_id, kalman_odom_msg->header.stamp,
                                           ros::Duration(WAIT_TRANS_TIME)))
   {
-    ROS_ERROR("reset_visual_tracker: wait for transform %s --> %s timed out!!", kalman_odom_msg->header.frame_id.c_str(),
+    ROS_ERROR("ros_open_tld: wait for transform %s --> %s timed out!!", kalman_odom_msg->header.frame_id.c_str(),
               cam_frame_id.c_str());
     return;
   }
@@ -495,32 +496,42 @@ void Main::getLastImageFromBuffer()
 {
   mutex.lock();
   img_header = img_buffer_ptr->header;
-  // TODO: capire se img e' una shallow copy o una deep copy di img_buffer_ptr->image
   img = img_buffer_ptr->image; // img e' di tipo 'cv::Mat'
-
-  //cv::Mat forward_img = img.clone(); // deep copy
 
   cv::Mat roi_img;
 
-  //TODO: implementare il ROI
-  //TODO: ingrandire ulteriormente l'area
+  // per debug! Togliere!
+  //odom_bb.x = 400;
+  //odom_bb.y = 393;
+  //odom_bb.width = 36;
+  //odom_bb.height = 36;
+  //odom_bb.confidence = 1.0f;
+  //pub_odom_rect.publish(odom_bb);
+
   // Se la confidenza e' nulla, l'oggetto e' uscito dalla scena, oppure e' coperto, se e' coperto gli si dice di cercare in una sotto-search_area data dalla bounding box dell'odometria
   // Controlliamo anche di avere ricevuto le informazioni riguardanti la camera
   if(tld && tld->currConf == 0 && !out_of_view && camera_info_received && odom_bb.x != -1 && kalman_has_converged)
+  //if(camera_info_received)
   {
     ROS_WARN("Viene passata la maschera!");
 
     // l'area di ricerca e' due volte quella della bounding box
     // nel caso la estendersi a sinistra non sia possibile, ci estendiamo a destra
-    int accum_width = 0;
+    int accum_width = -1;
     // nel caso la estendersi verso l'alto non sia possibile, ci estendiamo verso l'alto
-    int accum_height = 0;
+    int accum_height = -1;
     // nel caso in cui estendersi verso destra non sia possibile, e invece ci sia ancora spazio a sinistra, ci estendiamo a sinistra
-    int accum_x = 0;
+    //int accum_x = -1;
     // nel caso in cui estendersi verso il basso non sia possibile, e invece ci sia ancora spazio in alto, ci estendiamo verso l'alto
-    int accum_y = 0;
+    //int accum_y = -1;
 
-    int search_area_x = odom_bb.x - odom_bb.width;
+    int n = 3;
+
+    // Calcolo del centro della bounding box dell'odometria
+    int odom_bb_center_x = odom_bb.x + odom_bb.width/2;
+    int odom_bb_center_y = odom_bb.y + odom_bb.height/2;
+
+    int search_area_x = odom_bb_center_x - (n * odom_bb.width/2);
 
     if(search_area_x < 0)
     {
@@ -529,7 +540,7 @@ void Main::getLastImageFromBuffer()
       search_area_x = 0;
     }
 
-    int search_area_y = odom_bb.y - odom_bb.height;
+    int search_area_y = odom_bb_center_y - (n * odom_bb.height/2);
 
     if(search_area_y < 0)
     {
@@ -538,22 +549,22 @@ void Main::getLastImageFromBuffer()
       search_area_y = 0;
     }
 
-    int search_area_width = (odom_bb.width * 2) + accum_width;
+    int search_area_width = (odom_bb.width * n) + accum_width;
 
-    if(search_area_width > img.cols)
+    if((search_area_width+search_area_x) > img.cols)
     {
-      ROS_WARN("width > img_cols");
+      ROS_WARN("width+x > img_cols");
       //accum_x = search_area_width - img.cols;
-      search_area_width = img.cols;
+      search_area_width = img.cols - search_area_x;
     }
 
-    int search_area_height = (odom_bb.height * 2) + accum_height;
+    int search_area_height = (odom_bb.height * n) + accum_height;
 
-    if(search_area_height > img.rows)
+    if((search_area_height+search_area_y) > img.rows)
     {
-      ROS_WARN("height > img_rows");
+      ROS_WARN("height+y > img_rows");
       //accum_y = search_area_height - img.rows;
-      search_area_height = img.rows;
+      search_area_height = img.rows - search_area_y;
     }
 
     //// TODO: ri-abilitare questi controlli
@@ -571,31 +582,42 @@ void Main::getLastImageFromBuffer()
     ////{
     ////search_area_y = search_area_y - accum_y;
 
-    ////if(search_area_y < 0)
-    ////{
-    ////search_area_y = 0;
-    ////}
-    ////}
+    if(search_area_y < 0)
+    {
+    search_area_y = 0;
+    }
+    //}
 
     // Calcolo della ROI
-    cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
-    cv::Mat clone_img = img.clone(); //TODO: valutare se si possa rimuovere
-    //roi_img = clone_img(search_area);
-    //ROS_INFO("roi_img rows = %d, roi_img cols = %d.", roi_img.rows, roi_img.cols);
+    //TODO: aggiungere altri controlli
+    if(search_area_x > 0 && search_area_y > 0 && search_area_width > 1 && search_area_height > 1)
+    {
+      //TODO: rimuovere operazioni inutili
+      cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
+      //cv::Rect search_area = cv::Rect(300, 300, 90, 90);
+      ROS_INFO("search_area x = %d, search area y = %d, search area width = %d, search area height = %d", search_area.x,
+               search_area.y, search_area.width, search_area.height);
+      cv::Mat clone_img = img.clone();
+      ROS_INFO("clone_img rows = %d, clone_img cols = %d.", clone_img.rows, clone_img.cols);
 
-    //roi_img.copyTo(black_mat);
+      cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+      ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
+      cv::Mat black_mat_roi = black_mat(search_area);
+      ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
+      ROS_INFO("black_mat_roi rows = %d, black_mat_roi cols = %d.", black_mat_roi.rows, black_mat_roi.cols);
+      clone_img(search_area).copyTo(black_mat_roi);
+      ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
 
-    cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
-    ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
-    clone_img.copyTo(black_mat(search_area));
-    ROS_INFO("black_mat rows = %d, black_mat cols = %d.", black_mat.rows, black_mat.cols);
+      // Viene inviata l'immagine sul topic per la gui (serve solo per il debug visivo in realta')
+      cv_bridge::CvImage redirected_img_msg;
+      redirected_img_msg.header = img_header;
+      redirected_img_msg.encoding = img_buffer_ptr->encoding;
+      redirected_img_msg.image = black_mat;
+      ROS_WARN("Maschera inviata!");
+      pub_redirected_image.publish(redirected_img_msg.toImageMsg()); // Viene pubblicata la ROI ingrandita all'inverosimile
 
-    // Viene inviata l'immagine sul topic per la gui (serve solo per il debug visivo in realta')
-    cv_bridge::CvImage redirected_img_msg;
-    redirected_img_msg.header = img_header;
-    redirected_img_msg.encoding = img_buffer_ptr->encoding;
-    redirected_img_msg.image = black_mat;
-    pub_redirected_image.publish(redirected_img_msg.toImageMsg()); // Viene pubblicata la ROI ingrandita all'inverosimile
+      redirected_img_msg.image.copyTo(img);
+    }
   }
 
   //ROS_WARN("PRIMA DELLA CONVERSIONE");
