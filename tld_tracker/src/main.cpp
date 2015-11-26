@@ -525,7 +525,7 @@ void Main::getLastImageFromBuffer()
     // nel caso in cui estendersi verso il basso non sia possibile, e invece ci sia ancora spazio in alto, ci estendiamo verso l'alto
     //int accum_y = -1;
 
-    int n = 3;
+    int n = 2;
 
     // Calcolo del centro della bounding box dell'odometria
     int odom_bb_center_x = odom_bb.x + odom_bb.width/2;
@@ -567,7 +567,7 @@ void Main::getLastImageFromBuffer()
       search_area_height = img.rows - search_area_y;
     }
 
-    //// TODO: ri-abilitare questi controlli
+    // TODO: ri-abilitare questi controlli
     ////if(search_area_x > 0)
     ////{
     ////search_area_x = search_area_x - accum_x;
