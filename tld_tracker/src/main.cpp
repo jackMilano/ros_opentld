@@ -619,10 +619,6 @@ void Main::getLastImageFromBuffer()
     }
     else // In caso di out of view viene inviata una matrice totalmente nera, in modo che anche altri sphero nella scena non vengano cercati
     {
-
-      //cv::Mat clone_img = img.clone();
-      //ROS_INFO("ros_opentld: clone_img rows = %d, clone_img cols = %d.", clone_img.rows, clone_img.cols);
-
       cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 
       // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realta')
