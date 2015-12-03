@@ -124,12 +124,20 @@ void Main::process()
         {
           if(tld->currBB != NULL)
           {
+            last_tld_curr_bb_x = tld_curr_bb_x;
+            last_tld_curr_bb_y = tld_curr_bb_y;
+            tld_curr_bb_x = tld->currBB->x;
+            tld_curr_bb_y = tld->currBB->y;
             tld_curr_bb_width = tld->currBB->width;
             tld_curr_bb_height = tld->currBB->height;
             sendTrackedObject(tld->currBB->x, tld->currBB->y, tld->currBB->width, tld->currBB->height, tld->currConf);
           }
           else
           {
+            last_tld_curr_bb_x = 1;
+            last_tld_curr_bb_y = 1;
+            tld_curr_bb_x = 1;
+            tld_curr_bb_y = 1;
             sendTrackedObject(1, 1, 1, 1, 0.0);
           }
         }
@@ -319,12 +327,9 @@ void Main::odomToImgPlan(const double odom_x, const double odom_y, const double 
 }
 
 // Riceve l'odometria di kalman e la converte in 2D sul piano
-void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_msg)
+void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_msg)
 {
   //ROS_INFO("ros_tld_tracker: odometria kalman ricevuta");
-
-  //mutex.lock();
-  //semaphore.lock();
 
   // Non appena è disponibile la transform tra il sistema di riferimento dell'odometria e
   // quello della camera (deve essere già attivo `robot_localization`), si procede all'operazione di
@@ -359,14 +364,14 @@ void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_ms
   int odom_img_x = 0, odom_img_y = 0;
   odomToImgPlan(cam_odom.pose.position.x, cam_odom.pose.position.y, cam_odom.pose.position.z, odom_img_x, odom_img_y);
 
-  // PUBBLICAZIONE DELLA BOUNDING BOX CORRISPONDENTE ALLA POSIZIONE DELL'ODOMETRIA:
+  // PUBBLICAZIONE DELLA BOUNDING BOX CORRISPONDENTE ALLA POSIZIONE COMBINATA:
   // - serve per i test
   // - la bounding box viene calcolata come se avesse il centro nella posizione dell'odometria
   //   (2D, sistema di riferimento camera)
   // - la larghezza e l'altezza della bounding box corrispondono a quelle dell'ultima bounding box valida
-  odom_bb.header.seq = img_header.seq;
-  odom_bb.header.stamp = ros::Time::now();
-  odom_bb.header.frame_id = cam_frame_id;
+  fusion_bb.header.seq = img_header.seq;
+  fusion_bb.header.stamp = ros::Time::now();
+  fusion_bb.header.frame_id = cam_frame_id;
 
   int tmp_tld_currbb_width;
 
@@ -406,29 +411,29 @@ void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_ms
     }
   }
 
-  odom_bb.x = odom_img_x - static_cast<int>(round(static_cast<double>(tld_curr_bb_width) / 2.0));
+  fusion_bb.x = odom_img_x - static_cast<int>(round(static_cast<double>(tld_curr_bb_width) / 2.0));
 
-  if(odom_bb.x < 0)
+  if(fusion_bb.x < 0)
   {
     ROS_WARN("Attenzione! La coordinata 'x' della Bounding Box dell'odometria calcolata è negativa. Viene azzerata.");
-    odom_bb.x = 0;
+    fusion_bb.x = 0;
   }
 
-  odom_bb.y = odom_img_y - static_cast<int>(round(static_cast<double>(tld_curr_bb_height) / 2.0));
+  fusion_bb.y = odom_img_y - static_cast<int>(round(static_cast<double>(tld_curr_bb_height) / 2.0));
 
-  if(odom_bb.y < 0)
+  if(fusion_bb.y < 0)
   {
     ROS_WARN("Attenzione! La coordinata 'y' della Bounding Box dell'odometria calcolata è negativa. Viene azzerata.");
-    odom_bb.y = 0;
+    fusion_bb.y = 0;
   }
 
-  odom_bb.width = tld_curr_bb_width;
-  odom_bb.height = tld_curr_bb_height;
+  fusion_bb.width = tld_curr_bb_width;
+  fusion_bb.height = tld_curr_bb_height;
 
-  odom_bb.confidence = 1.0f;
+  fusion_bb.confidence = 1.0f;
 
-  if((odom_img_x < 0) || (odom_img_x + odom_bb.width - 2) > img_width || (odom_img_y < 0)
-      || (odom_img_y + odom_bb.height - 2) > img_height)
+  if((odom_img_x < 0) || (odom_img_x + fusion_bb.width - 2) > img_width || (odom_img_y < 0)
+      || (odom_img_y + fusion_bb.height - 2) > img_height)
   {
     if(odom_img_x < 0)
     {
@@ -460,10 +465,7 @@ void Main::kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_ms
   }
 
   //ROS_INFO("ros_tld_tracker: bounding box odometria inviata");
-  pub_odom_rect.publish(odom_bb);
-
-  //mutex.unlock();
-  //semaphore.unlock();
+  pub_odom_rect.publish(fusion_bb);
 
   return;
 }
@@ -488,8 +490,8 @@ bool Main::newImageReceived()
   return true;
 }
 
-// Quando l'ultima confidenza restituita da TLD e' nulla, si invia a tld un'immagine nera tranne
-// in una search_area incentrata nel centro della bounding box restituita dall'odometria
+// Quando l'ultima confidenza restituita da TLD è nulla, si invia a TLD un'immagine nera tranne
+// in una ROI incentrata nel centro della bounding box corrispondente alla posizione combinata
 // - spostarlo in 'imageReceivedCB' e farlo per ogni immagine?
 // - inserire un controllo sul tempo
 void Main::getLastImageFromBuffer()
@@ -500,141 +502,190 @@ void Main::getLastImageFromBuffer()
 
   cv::Mat roi_img;
 
-  // per debug! Togliere!
-  //odom_bb.x = 400;
-  //odom_bb.y = 393;
-  //odom_bb.width = 36;
-  //odom_bb.height = 36;
-  //odom_bb.confidence = 1.0f;
-  //pub_odom_rect.publish(odom_bb);
-
-  // Se la confidenza e' nulla, l'oggetto e' uscito dalla scena, oppure e' coperto, se e' coperto gli si dice di cercare in una sotto-search_area data dalla bounding box dell'odometria
-  // Controlliamo anche di avere ricevuto le informazioni riguardanti la camera
-  if(tld && tld->currConf == 0 && camera_info_received && odom_bb.x != -1 && kalman_has_converged)
-    //if(camera_info_received)
+  // Controlliamo innanzitutto di avere ricevuto i parametri intrinseci della camera, che i valori
+  // della posizione fused siano validi e che kalman abbia converso.
+  if(tld && camera_info_received && fusion_bb.x != -1 && kalman_has_converged)
   {
-    if(!out_of_view){
-    ROS_WARN("ros_opentld: Viene passata la maschera!");
+    int fusion_bb_center_x = fusion_bb.x + fusion_bb.width / 2;
+    int fusion_bb_center_y = fusion_bb.y + fusion_bb.height / 2;
 
-    // l'area di ricerca e' due volte quella della bounding box
-    // nel caso la estendersi a sinistra non sia possibile, ci estendiamo a destra
-    int accum_width = -1;
-    // nel caso la estendersi verso l'alto non sia possibile, ci estendiamo verso l'alto
-    int accum_height = -1;
-    // nel caso in cui estendersi verso destra non sia possibile, e invece ci sia ancora spazio a sinistra, ci estendiamo a sinistra
-    //int accum_x = -1;
-    // nel caso in cui estendersi verso il basso non sia possibile, e invece ci sia ancora spazio in alto, ci estendiamo verso l'alto
-    //int accum_y = -1;
-
-    const int n = 4;
-
-    // Calcolo del centro della bounding box dell'odometria
-    int odom_bb_center_x = odom_bb.x + odom_bb.width / 2;
-    int odom_bb_center_y = odom_bb.y + odom_bb.height / 2;
-
-    int search_area_x = odom_bb_center_x - (n * odom_bb.width / 2);
-
-    if(search_area_x < 0)
+    // Se la confidenza è nulla, il target è occluso oppure è uscito dalla scena.
+    // In caso di occlusione si calcola una ROI dell'immagine, avente come centro il centro
+    // della bounding box della posizione combinata
+    if(tld->currConf == 0)
     {
-      ROS_WARN("ros_opentld: x < 0");
-      //accum_width = search_area_x * (-1);
-      search_area_x = 0;
+      if(!out_of_view)
+      {
+        ROS_WARN("ros_opentld: target occluso! viene calcolata la ROI!");
+
+        // l'area di ricerca è 'n' volte quella della bounding box
+        // nel caso in cui estendersi a sinistra non sia possibile, ci estendiamo a destra
+        //int accum_width = -1;
+        // nel caso in cui estendersi verso l'alto non sia possibile, ci estendiamo verso il basso
+        //int accum_height = -1;
+
+        const int n = 3;
+
+        int search_area_x = fusion_bb_center_x - (n * fusion_bb.width / 2);
+
+        if(search_area_x < 0)
+        {
+          ROS_WARN("ros_opentld: x < 0");
+          search_area_x = 0;
+        }
+
+        int search_area_y = fusion_bb_center_y - (n * fusion_bb.height / 2);
+
+        if(search_area_y < 0)
+        {
+          ROS_WARN("ros_opentld: y < 0");
+          search_area_y = 0;
+        }
+
+        //int search_area_width = (fusion_bb.width * n) + accum_width;
+        int search_area_width = (fusion_bb.width * n);
+
+        if((search_area_width + search_area_x) > img.cols)
+        {
+          ROS_WARN("ros_opentld: width+x > img_cols");
+          search_area_width = img.cols - search_area_x;
+        }
+
+        //int search_area_height = (fusion_bb.height * n) + accum_height;
+        int search_area_height = (fusion_bb.height * n);
+
+        if((search_area_height + search_area_y) > img.rows)
+        {
+          ROS_WARN("ros_opentld: height+y > img_rows");
+          search_area_height = img.rows - search_area_y;
+        }
+
+        // Calcolo della ROI
+        //TODO: aggiungere altri controlli
+        if(search_area_x > 0 && search_area_y > 0 && search_area_width > 1 && search_area_height > 1)
+        {
+          //TODO: rimuovere operazioni inutili
+          cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
+          cv::Mat clone_img = img.clone();
+
+          cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+          cv::Mat black_mat_roi = black_mat(search_area);
+          clone_img(search_area).copyTo(black_mat_roi);
+
+          // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realtà)
+          cv_bridge::CvImage redirected_img_msg;
+          redirected_img_msg.header = img_header;
+          redirected_img_msg.encoding = img_buffer_ptr->encoding;
+          redirected_img_msg.image = black_mat;
+          //pub_redirected_image.publish(redirected_img_msg.toImageMsg());
+
+          ROS_WARN("ros_opentld: Maschera inviata!");
+          redirected_img_msg.image.copyTo(img);
+        }
+      }
+      else
+      {
+        // In caso di 'out of view' viene inviata una matrice totalmente nera, in modo che il target
+        // non venga cercato nella scena
+        cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+
+        // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realtà)
+        cv_bridge::CvImage redirected_img_msg;
+        redirected_img_msg.header = img_header;
+        redirected_img_msg.encoding = img_buffer_ptr->encoding;
+        redirected_img_msg.image = black_mat;
+        //pub_redirected_image.publish(redirected_img_msg.toImageMsg());
+
+        ROS_WARN("ros_opentld: Out of View! L'immagine inviata è totalmente nera!");
+        redirected_img_msg.image.copyTo(img);
+      }
     }
-
-    int search_area_y = odom_bb_center_y - (n * odom_bb.height / 2);
-
-    if(search_area_y < 0)
+    else
     {
-      ROS_WARN("ros_opentld: y < 0");
-      //accum_height = search_area_y * (-1);
-      search_area_y = 0;
-    }
+      // Controlliamo che TLD non abbia fatto movimenti bruschi da un frame all'altro e rispetto alla posizione combinata.
 
-    int search_area_width = (odom_bb.width * n) + accum_width;
+      const int max_dist = 10 * sqrt(pow(36, 2) + pow(36, 2));
 
-    if((search_area_width + search_area_x) > img.cols)
-    {
-      ROS_WARN("ros_opentld: width+x > img_cols");
-      //accum_x = search_area_width - img.cols;
-      search_area_width = img.cols - search_area_x;
-    }
+      if(tld_curr_bb_x != 1)
+      {
+        //int last_tld_bb_center_x = last_tld_curr_bb_x + last_tld_curr_bb_width / 2;
+        //int last_tld_bb_center_y = last_tld_curr_bb_y + last_tld_curr_bb_height / 2;
+        int tld_bb_center_x = tld_curr_bb_x + tld_curr_bb_width / 2;
+        int tld_bb_center_y = tld_curr_bb_y + tld_curr_bb_height / 2;
 
-    int search_area_height = (odom_bb.height * n) + accum_height;
+        //const int time_movement = sqrt(pow(last_tld_bb_center_x - tld_bb_center_x, 2) + pow(last_tld_bb_center_y - tld_bb_center_y, 2));
+        int space_movement = sqrt(pow(fusion_bb_center_x - tld_bb_center_x, 2) + pow(fusion_bb_center_y - tld_bb_center_y, 2));
 
-    if((search_area_height + search_area_y) > img.rows)
-    {
-      ROS_WARN("ros_opentld: height+y > img_rows");
-      //accum_y = search_area_height - img.rows;
-      search_area_height = img.rows - search_area_y;
-    }
+        // Quando la posizione di tld e quella combinata divergono di un ampia distanza, si effettua la ricerca in una ROI
+        // TODO: funzione per il calcolo ed invio della ROI, invece che riscrivere lo stesso codice in due posti diversi
+        //if(time_movement > max_dist || space_movement > max_dist)
+        if(space_movement > max_dist)
+        {
+          ROS_INFO("ros_open_tld: divergenza di posizione tra posizione combinata e tld. ROI inviata.");
+          const int n = 5; // Più grande che rispetto ad occlusione (3)
 
-    // TODO: ri-abilitare questi controlli
-    ////if(search_area_x > 0)
-    ////{
-    ////search_area_x = search_area_x - accum_x;
+          int search_area_x = fusion_bb_center_x - (n * fusion_bb.width / 2);
 
-    ////if(search_area_x < 0)
-    ////{
-    ////search_area_x = 0;
-    ////}
-    ////}
+          if(search_area_x < 0)
+          {
+            ROS_WARN("ros_opentld: x < 0");
+            search_area_x = 0;
+          }
 
-    ////if(search_area_y > 0)
-    ////{
-    ////search_area_y = search_area_y - accum_y;
+          int search_area_y = fusion_bb_center_y - (n * fusion_bb.height / 2);
 
-    if(search_area_y < 0)
-    {
-      search_area_y = 0;
-    }
+          if(search_area_y < 0)
+          {
+            ROS_WARN("ros_opentld: y < 0");
+            search_area_y = 0;
+          }
 
-    //}
+          //int search_area_width = (fusion_bb.width * n) + accum_width;
+          int search_area_width = (fusion_bb.width * n);
 
-    // Calcolo della ROI
-    //TODO: aggiungere altri controlli
-    if(search_area_x > 0 && search_area_y > 0 && search_area_width > 1 && search_area_height > 1)
-    {
-      //TODO: rimuovere operazioni inutili
-      cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
-      ROS_INFO("ros_opentld: search_area x = %d, search area y = %d, search area width = %d, search area height = %d",
-               search_area.x, search_area.y, search_area.width, search_area.height);
-      cv::Mat clone_img = img.clone();
-      ROS_INFO("ros_opentld: clone_img rows = %d, clone_img cols = %d.", clone_img.rows, clone_img.cols);
+          if((search_area_width + search_area_x) > img.cols)
+          {
+            ROS_WARN("ros_opentld: width+x > img_cols");
+            search_area_width = img.cols - search_area_x;
+          }
 
-      cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
-      cv::Mat black_mat_roi = black_mat(search_area);
-      ROS_INFO("ros_opentld: black_mat_roi rows = %d, black_mat_roi cols = %d.", black_mat_roi.rows, black_mat_roi.cols);
-      clone_img(search_area).copyTo(black_mat_roi);
+          //int search_area_height = (fusion_bb.height * n) + accum_height;
+          int search_area_height = (fusion_bb.height * n);
 
-      // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realta')
-      cv_bridge::CvImage redirected_img_msg;
-      redirected_img_msg.header = img_header;
-      redirected_img_msg.encoding = img_buffer_ptr->encoding;
-      redirected_img_msg.image = black_mat;
-      ROS_WARN("ros_opentld: Maschera inviata!");
-      pub_redirected_image.publish(redirected_img_msg.toImageMsg()); // Viene pubblicata la ROI ingrandita all'inverosimile
+          if((search_area_height + search_area_y) > img.rows)
+          {
+            ROS_WARN("ros_opentld: height+y > img_rows");
+            search_area_height = img.rows - search_area_y;
+          }
 
-      redirected_img_msg.image.copyTo(img);
-    }
-    }
-    else // In caso di out of view viene inviata una matrice totalmente nera, in modo che anche altri sphero nella scena non vengano cercati
-    {
-      cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+          // Calcolo della ROI
+          //TODO: aggiungere altri controlli
+          if(search_area_x > 0 && search_area_y > 0 && search_area_width > 1 && search_area_height > 1)
+          {
+            //TODO: rimuovere operazioni inutili
+            cv::Rect search_area = cv::Rect(search_area_x, search_area_y, search_area_width, search_area_height);
+            cv::Mat clone_img = img.clone();
 
-      // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realta')
-      cv_bridge::CvImage redirected_img_msg;
-      redirected_img_msg.header = img_header;
-      redirected_img_msg.encoding = img_buffer_ptr->encoding;
-      redirected_img_msg.image = black_mat;
-      ROS_WARN("ros_opentld: Out of View! L'immagine inviata e' totalmente nera!");
-      pub_redirected_image.publish(redirected_img_msg.toImageMsg()); // Viene pubblicata la ROI ingrandita all'inverosimile
+            cv::Mat black_mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+            cv::Mat black_mat_roi = black_mat(search_area);
+            clone_img(search_area).copyTo(black_mat_roi);
 
-      redirected_img_msg.image.copyTo(img);
+            // Viene inviata l'immagine sul topic per la GUI (serve solo per il debug visivo in realtà)
+            cv_bridge::CvImage redirected_img_msg;
+            redirected_img_msg.header = img_header;
+            redirected_img_msg.encoding = img_buffer_ptr->encoding;
+            redirected_img_msg.image = black_mat;
+            //pub_redirected_image.publish(redirected_img_msg.toImageMsg());
+
+            ROS_WARN("ros_opentld: Maschera inviata!");
+            redirected_img_msg.image.copyTo(img);
+          }
+        }
+      }
     }
   }
 
   cv::cvtColor(img, gray, CV_BGR2GRAY);
-  //cv::cvtColor(roi_img, gray, CV_BGR2GRAY);
 
   img_buffer_ptr.reset();
   mutex.unlock();

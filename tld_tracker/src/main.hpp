@@ -97,21 +97,23 @@ public:
     sub2 = n.subscribe("bounding_box", 1000, &Main::targetReceivedCB, this);
     sub3 = n.subscribe("cmds", 1000, &Main::cmdReceivedCB, this);
 
-    sub_kalman = n.subscribe("odometry/filtered", 1000, &Main::kalmanOdomReceivedCB, this);
+    sub_kalman = n.subscribe("odometry/filtered", 1000, &Main::positionFusedReceivedCB, this);
     // Callback per ottenere i parametri intrinseci della camera, dato che il modello della camera
     // è costante questa callback verrà eseguita una sola volta.
     depth_camera_info_sub = n.subscribe("/kinect2/qhd/camera_info", 1000, &Main::depthCameraInfoCb, this);
     tf::TransformListener transform_listener;
 
-    odom_bb.x = -1;
-    odom_bb.y = -1;
-    odom_bb.width = -1;
-    odom_bb.height = -1;
+    fusion_bb.x = -1;
+    fusion_bb.y = -1;
+    fusion_bb.width = -1;
+    fusion_bb.height = -1;
 
-    pub_odom_rect = n.advertise<tld_msgs::BoundingBox>("odom_bb", 1000, true);
-    pub_redirected_image = n.advertise<sensor_msgs::Image>("redirected_image_gui", 1000, true);
+    pub_odom_rect = n.advertise<tld_msgs::BoundingBox>("fusion_bb", 1000, true);
+    //pub_redirected_image = n.advertise<sensor_msgs::Image>("redirected_image_gui", 1000, true);
 
     start_time = ros::Time::now();
+    last_tld_curr_bb_x = -1;
+    last_tld_curr_bb_y = -1;
     last_tld_curr_bb_width = 36;
     last_tld_curr_bb_height = 36;
 
@@ -151,13 +153,17 @@ private:
   int img_height, img_width;
   std::string cam_frame_id;
 
+  int tld_curr_bb_x;
+  int tld_curr_bb_y;
   int tld_curr_bb_width;
   int tld_curr_bb_height;
+  int last_tld_curr_bb_x;
+  int last_tld_curr_bb_y;
   int last_tld_curr_bb_width;
   int last_tld_curr_bb_height;
 
 
-  tld_msgs::BoundingBox odom_bb;
+  tld_msgs::BoundingBox fusion_bb;
 
   enum
   {
@@ -186,7 +192,7 @@ private:
   ros::Subscriber depth_camera_info_sub;
 
   ros::Publisher pub_odom_rect;
-  ros::Publisher pub_redirected_image;
+  //ros::Publisher pub_redirected_image;
   ros::Subscriber sub_kalman;
 
   tf::TransformListener transform_listener;
@@ -218,7 +224,7 @@ private:
   /*!
   * \brief ROS command callback.
   */
-  void kalmanOdomReceivedCB(const nav_msgs::OdometryConstPtr& cmd);
+  void positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& cmd);
 
   /*!
   * \brief ROS command callback.
