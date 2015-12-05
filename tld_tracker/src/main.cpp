@@ -326,18 +326,14 @@ void Main::odomToImgPlan(const double odom_x, const double odom_y, const double 
   return;
 }
 
-// Riceve l'odometria di kalman e la converte in 2D sul piano
-void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom_msg)
+// Riceve la posizione combinata e la converte in 2D sul piano
+void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& fused_odom_msg)
 {
-  //ROS_INFO("ros_tld_tracker: odometria kalman ricevuta");
 
-  // Non appena è disponibile la transform tra il sistema di riferimento dell'odometria e
-  // quello della camera (deve essere già attivo `robot_localization`), si procede all'operazione di
-  // conversione della posizione 3D dell'odometria dal primo sistema di riferimento all'altro.
-  if(!transform_listener.waitForTransform(kalman_odom_msg->header.frame_id, cam_frame_id, kalman_odom_msg->header.stamp,
+  if(!transform_listener.waitForTransform(fused_odom_msg->header.frame_id, cam_frame_id, fused_odom_msg->header.stamp,
                                           ros::Duration(WAIT_TRANS_TIME)))
   {
-    ROS_ERROR("ros_open_tld: wait for transform %s --> %s timed out!!", kalman_odom_msg->header.frame_id.c_str(),
+    ROS_ERROR("ros_open_tld: wait for transform %s --> %s timed out!!", fused_odom_msg->header.frame_id.c_str(),
               cam_frame_id.c_str());
     return;
   }
@@ -355,14 +351,19 @@ void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom
   }
 
   geometry_msgs::PoseStamped odom_pose;
-  odom_pose.header = kalman_odom_msg->header; // frame_id = "kalman_odom_msg"
-  odom_pose.pose = kalman_odom_msg->pose.pose;
+  odom_pose.header = fused_odom_msg->header; // frame_id = "fused_odom_msg"
+  odom_pose.pose = fused_odom_msg->pose.pose;
   geometry_msgs::PoseStamped cam_odom; // frame_id = "kinect2_rgb_optical_frame"
   transform_listener.transformPose(cam_frame_id, odom_pose, cam_odom);
 
   // Calcolo posizione sul piano immagine (sistema di riferimento camera) dell'odometria.
-  int odom_img_x = 0, odom_img_y = 0;
-  odomToImgPlan(cam_odom.pose.position.x, cam_odom.pose.position.y, cam_odom.pose.position.z, odom_img_x, odom_img_y);
+  int fusion_img_x = 0, fusion_img_y = 0;
+  odomToImgPlan(cam_odom.pose.position.x, cam_odom.pose.position.y, cam_odom.pose.position.z, fusion_img_x, fusion_img_y);
+
+  last_fusion_bb_center_x = fusion_bb_center_x;
+  last_fusion_bb_center_y = fusion_bb_center_y;
+  fusion_bb_center_x = fusion_img_x;
+  fusion_bb_center_y = fusion_img_y;
 
   // PUBBLICAZIONE DELLA BOUNDING BOX CORRISPONDENTE ALLA POSIZIONE COMBINATA:
   // - serve per i test
@@ -411,7 +412,7 @@ void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom
     }
   }
 
-  fusion_bb.x = odom_img_x - static_cast<int>(round(static_cast<double>(tld_curr_bb_width) / 2.0));
+  fusion_bb.x = fusion_img_x - static_cast<int>(round(static_cast<double>(tld_curr_bb_width) / 2.0));
 
   if(fusion_bb.x < 0)
   {
@@ -419,7 +420,7 @@ void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom
     fusion_bb.x = 0;
   }
 
-  fusion_bb.y = odom_img_y - static_cast<int>(round(static_cast<double>(tld_curr_bb_height) / 2.0));
+  fusion_bb.y = fusion_img_y - static_cast<int>(round(static_cast<double>(tld_curr_bb_height) / 2.0));
 
   if(fusion_bb.y < 0)
   {
@@ -430,30 +431,35 @@ void Main::positionFusedReceivedCB(const nav_msgs::OdometryConstPtr& kalman_odom
   fusion_bb.width = tld_curr_bb_width;
   fusion_bb.height = tld_curr_bb_height;
 
+  last_fusion_bb_width = fusion_bb_width;
+  last_fusion_bb_height = fusion_bb_height;
+  fusion_bb_width = fusion_bb.width;
+  fusion_bb_height = fusion_bb.height;
+
   fusion_bb.confidence = 1.0f;
 
-  if((odom_img_x < 0) || (odom_img_x + fusion_bb.width - 2) > img_width || (odom_img_y < 0)
-      || (odom_img_y + fusion_bb.height - 2) > img_height)
+  if((fusion_img_x < 0) || (fusion_img_x + fusion_bb.width - 2) > img_width || (fusion_img_y < 0)
+      || (fusion_img_y + fusion_bb.height - 2) > img_height)
   {
-    if(odom_img_x < 0)
+    if(fusion_img_x < 0)
     {
-      ROS_WARN("Out of view. odom_img_x = %d", odom_img_x);
+      ROS_WARN("Out of view. fusion_img_x = %d", fusion_img_x);
     }
 
-    if((odom_img_x + tld_curr_bb_width - 2) > img_width)
+    if((fusion_img_x + tld_curr_bb_width - 2) > img_width)
     {
-      ROS_WARN("Out of view. odom_img_x = %d, img_width = %d, tld_curr_bb_width = %d", odom_img_x, img_width,
+      ROS_WARN("Out of view. fusion_img_x = %d, img_width = %d, tld_curr_bb_width = %d", fusion_img_x, img_width,
                tld_curr_bb_width);
     }
 
-    if(odom_img_y < 0)
+    if(fusion_img_y < 0)
     {
-      ROS_WARN("Out of view. odom_img_y = %d", odom_img_y);
+      ROS_WARN("Out of view. fusion_img_y = %d", fusion_img_y);
     }
 
-    if((odom_img_y + tld_curr_bb_height - 2) > img_height)
+    if((fusion_img_y + tld_curr_bb_height - 2) > img_height)
     {
-      ROS_WARN("Out of view. odom_img_y = %d, img_height = %d, tld_curr_bb_height = %d", odom_img_y, img_height,
+      ROS_WARN("Out of view. fusion_img_y = %d, img_height = %d, tld_curr_bb_height = %d", fusion_img_y, img_height,
                tld_curr_bb_height);
     }
 
@@ -504,10 +510,10 @@ void Main::getLastImageFromBuffer()
 
   // Controlliamo innanzitutto di avere ricevuto i parametri intrinseci della camera, che i valori
   // della posizione fused siano validi e che kalman abbia converso.
-  if(tld && camera_info_received && fusion_bb.x != -1 && kalman_has_converged)
+  if(tld && camera_info_received && last_fusion_bb_center_x != -1 && kalman_has_converged)
   {
-    int fusion_bb_center_x = fusion_bb.x + fusion_bb.width / 2;
-    int fusion_bb_center_y = fusion_bb.y + fusion_bb.height / 2;
+    //int fusion_bb_center_x = fusion_bb.x + fusion_bb.width / 2;
+    //int fusion_bb_center_y = fusion_bb.y + fusion_bb.height / 2;
 
     // Se la confidenza è nulla, il target è occluso oppure è uscito dalla scena.
     // In caso di occlusione si calcola una ROI dell'immagine, avente come centro il centro
@@ -526,7 +532,7 @@ void Main::getLastImageFromBuffer()
 
         const int n = 3;
 
-        int search_area_x = fusion_bb_center_x - (n * fusion_bb.width / 2);
+        int search_area_x = last_fusion_bb_center_x - (n * last_fusion_bb_width / 2);
 
         if(search_area_x < 0)
         {
@@ -534,7 +540,7 @@ void Main::getLastImageFromBuffer()
           search_area_x = 0;
         }
 
-        int search_area_y = fusion_bb_center_y - (n * fusion_bb.height / 2);
+        int search_area_y = last_fusion_bb_center_y - (n * last_fusion_bb_height / 2);
 
         if(search_area_y < 0)
         {
@@ -543,7 +549,7 @@ void Main::getLastImageFromBuffer()
         }
 
         //int search_area_width = (fusion_bb.width * n) + accum_width;
-        int search_area_width = (fusion_bb.width * n);
+        int search_area_width = (last_fusion_bb_width * n);
 
         if((search_area_width + search_area_x) > img.cols)
         {
@@ -552,7 +558,7 @@ void Main::getLastImageFromBuffer()
         }
 
         //int search_area_height = (fusion_bb.height * n) + accum_height;
-        int search_area_height = (fusion_bb.height * n);
+        int search_area_height = (last_fusion_bb_height * n);
 
         if((search_area_height + search_area_y) > img.rows)
         {
@@ -602,7 +608,7 @@ void Main::getLastImageFromBuffer()
     }
     else
     {
-      // Controlliamo che TLD non abbia fatto movimenti bruschi da un frame all'altro e rispetto alla posizione combinata.
+      // Controlliamo che TLD non abbia fatto movimenti bruschi da un frame all'altro.
 
       const int max_dist = 10 * sqrt(pow(36, 2) + pow(36, 2));
 
@@ -614,17 +620,17 @@ void Main::getLastImageFromBuffer()
         int tld_bb_center_y = tld_curr_bb_y + tld_curr_bb_height / 2;
 
         //const int time_movement = sqrt(pow(last_tld_bb_center_x - tld_bb_center_x, 2) + pow(last_tld_bb_center_y - tld_bb_center_y, 2));
-        int space_movement = sqrt(pow(fusion_bb_center_x - tld_bb_center_x, 2) + pow(fusion_bb_center_y - tld_bb_center_y, 2));
+        int space_movement = sqrt(pow(last_fusion_bb_center_x - tld_bb_center_x, 2) + pow(last_fusion_bb_center_y - tld_bb_center_y, 2));
 
-        // Quando la posizione di tld e quella combinata divergono di un ampia distanza, si effettua la ricerca in una ROI
+        // Quando la posizione di TLD e quella combinata divergono di un ampia distanza, si effettua la ricerca in una ROI
         // TODO: funzione per il calcolo ed invio della ROI, invece che riscrivere lo stesso codice in due posti diversi
         //if(time_movement > max_dist || space_movement > max_dist)
         if(space_movement > max_dist)
         {
           ROS_INFO("ros_open_tld: divergenza di posizione tra posizione combinata e tld. ROI inviata.");
-          const int n = 5; // Più grande che rispetto ad occlusione (3)
+          const int n = 4; // Più grande che rispetto ad occlusione (3)
 
-          int search_area_x = fusion_bb_center_x - (n * fusion_bb.width / 2);
+          int search_area_x = last_fusion_bb_center_x - (n * last_fusion_bb_width / 2);
 
           if(search_area_x < 0)
           {
@@ -632,7 +638,7 @@ void Main::getLastImageFromBuffer()
             search_area_x = 0;
           }
 
-          int search_area_y = fusion_bb_center_y - (n * fusion_bb.height / 2);
+          int search_area_y = last_fusion_bb_center_y - (n * last_fusion_bb_height / 2);
 
           if(search_area_y < 0)
           {
@@ -641,7 +647,7 @@ void Main::getLastImageFromBuffer()
           }
 
           //int search_area_width = (fusion_bb.width * n) + accum_width;
-          int search_area_width = (fusion_bb.width * n);
+          int search_area_width = (last_fusion_bb_width * n);
 
           if((search_area_width + search_area_x) > img.cols)
           {
@@ -650,7 +656,7 @@ void Main::getLastImageFromBuffer()
           }
 
           //int search_area_height = (fusion_bb.height * n) + accum_height;
-          int search_area_height = (fusion_bb.height * n);
+          int search_area_height = (last_fusion_bb_height * n);
 
           if((search_area_height + search_area_y) > img.rows)
           {

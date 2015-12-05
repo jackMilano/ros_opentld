@@ -97,7 +97,7 @@ public:
     sub2 = n.subscribe("bounding_box", 1000, &Main::targetReceivedCB, this);
     sub3 = n.subscribe("cmds", 1000, &Main::cmdReceivedCB, this);
 
-    sub_kalman = n.subscribe("odometry/filtered", 1000, &Main::positionFusedReceivedCB, this);
+    sub_fusion = n.subscribe("odometry/filtered", 1000, &Main::positionFusedReceivedCB, this);
     // Callback per ottenere i parametri intrinseci della camera, dato che il modello della camera
     // è costante questa callback verrà eseguita una sola volta.
     depth_camera_info_sub = n.subscribe("/kinect2/qhd/camera_info", 1000, &Main::depthCameraInfoCb, this);
@@ -117,6 +117,16 @@ public:
     last_tld_curr_bb_width = 36;
     last_tld_curr_bb_height = 36;
 
+    last_fusion_bb_width = -1;
+    last_fusion_bb_height = -1;
+    fusion_bb_width = -1;
+    fusion_bb_height = -1;
+
+    last_fusion_bb_center_x = -1;
+    last_fusion_bb_center_y = -1;
+    fusion_bb_center_x = -1;
+    fusion_bb_center_y = -1;
+
     semaphore.lock();
   }
 
@@ -135,6 +145,16 @@ private:
   bool autoFaceDetection;
   std::string modelImportFile;
   std::string modelExportFile;
+
+  int last_fusion_bb_width;
+  int last_fusion_bb_height;
+  int fusion_bb_width;
+  int fusion_bb_height;
+
+  int last_fusion_bb_center_x;
+  int last_fusion_bb_center_y;
+  int fusion_bb_center_x;
+  int fusion_bb_center_y;
 
   bool kalman_has_converged;
   bool out_of_view;
@@ -193,7 +213,7 @@ private:
 
   ros::Publisher pub_odom_rect;
   //ros::Publisher pub_redirected_image;
-  ros::Subscriber sub_kalman;
+  ros::Subscriber sub_fusion;
 
   tf::TransformListener transform_listener;
 
